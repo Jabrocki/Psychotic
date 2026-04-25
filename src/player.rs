@@ -4,7 +4,8 @@ pub struct Player {
     position: Vector2<f32>,
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
-    angle: f32,
+
+    yaw: f32,
 }
 
 impl Player {
@@ -13,7 +14,7 @@ impl Player {
             position: Vector2::new(32.0, 32.0),
             velocity: Vector2::new(0.0, 0.0),
             acceleration: Vector2::new(0.0, 0.0),
-            angle: 0.0,
+            yaw: 0.0,
         }
     }
 
@@ -48,5 +49,9 @@ impl Player {
 
     pub fn position(&self) -> Vector2<f32> {
         self.position
+    }
+
+    pub fn yaw(&self) -> f32 {
+        self.yaw
     }
 }
