@@ -12,14 +12,17 @@ pub struct Renderer {
     canvas: Canvas<Window>,
     window_width: u32,
     window_height: u32,
+    screen_buffer: Vec<u32>,
 }
 
 impl Renderer {
     pub fn new(canvas: Canvas<Window>, window_width: u32, window_height: u32) -> Self {
+        let screen_buffer = vec![0; (window_width * window_height) as usize];
         Self {
             canvas,
             window_width,
             window_height,
+            screen_buffer,
         }
     }
 

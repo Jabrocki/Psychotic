@@ -1,0 +1,54 @@
+use sdl2::{render::TextureCreator, video::WindowContext};
+
+use crate::{
+    event_handler::EventHandler, player::Player, renderer::Renderer,
+    texture_menager::TextureManager, world::World,
+};
+
+pub struct Game<'a> {
+    world: World,
+    player: Player,
+    renderer: Renderer,
+    event_handler: EventHandler,
+    texture_manager: TextureManager<'a>,
+    _texture_creator: &'a TextureCreator<WindowContext>,
+}
+
+impl<'a> Game<'a> {
+    pub fn new(
+        width: u32,
+        height: u32,
+        texture_creator: &'a TextureCreator<WindowContext>,
+        canvas: sdl2::render::Canvas<sdl2::video::Window>,
+        event_pump: sdl2::EventPump,
+    ) -> Self {
+        let world = World::new();
+        let player = Player::new();
+
+        let renderer = Renderer::new(canvas, width, height);
+        let event_handler = EventHandler::new(event_pump);
+        let texture_manager = TextureManager::new(texture_creator);
+
+        Self {
+            world,
+            player,
+            renderer,
+            event_handler,
+            texture_manager,
+            _texture_creator: texture_creator,
+        }
+    }
+    pub fn run(&mut self) {
+        let mut delta_time: f32;
+        let mut last_time = std::time::Instant::now();
+
+        loop {
+            self.renderer.render(&self.world, &self.player);
+            self.event_handler.pull_events(&mut self.player);
+            let current_time = std::time::Instant::now();
+            delta_time = (current_time - last_time).as_secs_f32();
+            last_time = current_time;
+            self.player.update(delta_time);
+        }
+    }
+}
