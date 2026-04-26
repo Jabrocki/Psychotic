@@ -1,13 +1,6 @@
 use std::f32;
 
-use nalgebra::Vector2;
-use psychotic::{player::Player, renderer::Renderer, world::World};
-use sdl2::{
-    event::*,
-    keyboard::*,
-    pixels::Color,
-    rect::{Point, Rect},
-};
+use psychotic::{event_handler::EventHandler, player::Player, renderer::Renderer, world::World};
 
 fn main() {
     let mut world: World = World::new();
@@ -20,8 +13,10 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let canvas = window.into_canvas().build().unwrap();
+    let event_pump = sdl_context.event_pump().unwrap();
     let mut renderer: Renderer = Renderer::new(canvas, WIDTH, HEIGHT);
+    let mut event_handler: EventHandler = EventHandler::new(event_pump);
     let mut delta_time: f32;
 
     for x in 0..64 {
@@ -52,48 +47,11 @@ fn main() {
     const WIDTH: u32 = 800;
     const HEIGHT: u32 = 800;
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
-
     let mut last_time = std::time::Instant::now();
 
-    'running: loop {
+    loop {
         renderer.render(&world, &player);
-
-        // raycaster
-        // POV
-
-        //World Drawing
-
-        // Player Drawing
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                Event::MouseMotion { xrel, .. } => {
-                    player.rotate((xrel as f32) * 0.002);
-                }
-                _ => {}
-            }
-        }
-
-        let keyboard = event_pump.keyboard_state();
-
-        if keyboard.is_scancode_pressed(Scancode::Up) {
-            player.up();
-        }
-        if keyboard.is_scancode_pressed(Scancode::Down) {
-            player.down();
-        }
-        if keyboard.is_scancode_pressed(Scancode::Left) {
-            player.left();
-        }
-        if keyboard.is_scancode_pressed(Scancode::Right) {
-            player.right();
-        }
-
+        event_handler.pull_events(&mut player);
         let current_time = std::time::Instant::now();
         delta_time = (current_time - last_time).as_secs_f32();
         last_time = current_time;
