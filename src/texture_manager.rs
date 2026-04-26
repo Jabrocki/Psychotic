@@ -27,7 +27,7 @@ impl TextureManager {
         let surface = Surface::from_file(path).expect("Failed to load texture");
 
         let opt_surface = surface
-            .convert_format(PixelFormatEnum::RGBA8888)
+            .convert_format(PixelFormatEnum::RGB24)
             .expect("Failed to convert surface format");
 
         let width = opt_surface.width();
@@ -39,9 +39,9 @@ impl TextureManager {
 
         for y in 0..height {
             for x in 0..width {
-                let offset = (y as usize * pitch) + (x as usize * 4);
-                let pixel_data = &data[offset..offset + 4];
-                let color = Color::RGB(pixel_data[0], pixel_data[1], pixel_data[2]);
+                let offset = (y as usize * pitch) + (x as usize * 3);
+
+                let color = Color::RGB(data[offset], data[offset + 1], data[offset + 2]);
                 pixels.push(color);
             }
         }
