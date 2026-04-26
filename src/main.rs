@@ -9,10 +9,9 @@ fn main() {
         .unwrap();
     let canvas = window.into_canvas().build().unwrap();
 
-    let texture_creator = canvas.texture_creator();
     let event_pump = sdl_context.event_pump().unwrap();
 
-    let mut game = Game::new(800, 600, &texture_creator, canvas, event_pump);
+    let mut game = Game::new(800, 600, canvas, event_pump);
 
     game.run();
 }

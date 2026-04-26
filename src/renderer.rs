@@ -6,7 +6,7 @@ use sdl2::{
     video::Window,
 };
 
-use crate::{player::Player, world::World};
+use crate::{player::Player, texture_manager::TextureManager, world::World};
 
 pub struct Renderer {
     canvas: Canvas<Window>,
@@ -26,17 +26,17 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, world: &World, player: &Player) {
+    pub fn render(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
 
-        self.render_world(world, player);
+        self.render_world(world, player, &texture_manager);
         self.render_debug_info(world, player);
 
         self.canvas.present();
     }
 
-    fn render_world(&mut self, world: &World, player: &Player) {
+    fn render_world(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         let plane = Vector2::new(-player.direction().y * 0.66, player.direction().x * 0.66);
 
         for x_s in 0..self.window_width {
@@ -92,28 +92,42 @@ impl Renderer {
             let end = (line_height / 2 + self.window_height as i32 / 2)
                 .min(self.window_height as i32 - 1);
 
-            let mut color = world
-                .reg()
-                .get(&world.get_tile(map_pos.x as usize, map_pos.y as usize))
-                .unwrap()
-                .color();
+            // TODO: rysowanie tesktur
+            let tex_id = world.get_tile(map_pos.x as usize, map_pos.y as usize);
+            let mut wall_x = if side == 0 {
+                player.position().y + perp_wall_dist * ray_dir.y
+            } else {
+                player.position().x + perp_wall_dist * ray_dir.x
+            };
+            wall_x -= wall_x.floor();
 
-            if side == 1 {
-                color = Color::RGB(color.r / 2, color.g / 2, color.b / 2);
+            let mut tex_x = (wall_x * 64.0) as u32;
+            if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
+                tex_x = 64 - tex_x - 1;
             }
 
-            self.canvas.set_draw_color(color);
-            self.canvas
-                .draw_line(Point::new(x_s as i32, start), Point::new(x_s as i32, end));
+            let step_tex = 64.0 / line_height as f32;
+            let mut tex_pos = (start as f32 - self.window_height as f32 / 2.0
+                + line_height as f32 / 2.0)
+                * step_tex;
+            for y in start..end {
+                let tex_y = tex_pos as u32 & 63;
+                tex_pos += step_tex;
+                let mut color = texture_manager
+                    .get_texture_color(tex_id, tex_x, tex_y)
+                    .unwrap_or(Color::RGB(255, 255, 255));
+                color = Color::RGB(color.r / 2, color.g / 2, color.b / 2);
+                self.canvas.set_draw_color(color);
+                self.canvas.draw_point(Point::new(x_s as i32, y)).unwrap();
+            }
         }
     }
 
     fn render_debug_info(&mut self, world: &World, player: &Player) {
         for y in 0..world.height() {
             for x in 0..world.width() {
-                let tile = world.reg().get(&world.get_tile(x, y)).unwrap();
-                self.canvas.set_draw_color(tile.color());
-
+                // TODO: Rysowanie tesktur zamiast kwadratów
+                self.canvas.set_draw_color(Color::RGB(255, 255, 255));
                 let rect = Rect::new((x as i32) * 3, (y as i32) * 3, 3, 3);
                 if world.get_tile(x, y) != 0 {
                     self.canvas.fill_rect(rect);

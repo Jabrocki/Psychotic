@@ -2,32 +2,54 @@ use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
     event_handler::EventHandler, player::Player, renderer::Renderer,
-    texture_menager::TextureManager, world::World,
+    texture_manager::TextureManager, world::World,
 };
 
-pub struct Game<'a> {
+pub struct Game {
     world: World,
     player: Player,
     renderer: Renderer,
     event_handler: EventHandler,
-    texture_manager: TextureManager<'a>,
-    _texture_creator: &'a TextureCreator<WindowContext>,
+    texture_manager: TextureManager,
 }
 
-impl<'a> Game<'a> {
+impl Game {
     pub fn new(
         width: u32,
         height: u32,
-        texture_creator: &'a TextureCreator<WindowContext>,
         canvas: sdl2::render::Canvas<sdl2::video::Window>,
         event_pump: sdl2::EventPump,
     ) -> Self {
-        let world = World::new();
+        let mut world = World::new();
+
+        // Example world
+        // 0 - empty space
+        // 1 - wall
+        for x in 0..64 {
+            world.set_tile(x, 0, 1);
+            world.set_tile(x, 63, 1);
+        }
+        for y in 0..64 {
+            world.set_tile(0, y, 1);
+            world.set_tile(63, y, 1);
+        }
+
+        // Add some internal walls
+        for x in 10..20 {
+            world.set_tile(x, 10, 1);
+        }
+
+        for x in 30..40 {
+            world.set_tile(x + 5, x, 1);
+        }
         let player = Player::new();
 
         let renderer = Renderer::new(canvas, width, height);
         let event_handler = EventHandler::new(event_pump);
-        let texture_manager = TextureManager::new(texture_creator);
+        let mut texture_manager = TextureManager::new();
+
+        // Load textures
+        texture_manager.load_static(1, "images/colorstone.png");
 
         Self {
             world,
@@ -35,7 +57,6 @@ impl<'a> Game<'a> {
             renderer,
             event_handler,
             texture_manager,
-            _texture_creator: texture_creator,
         }
     }
     pub fn run(&mut self) {
@@ -43,7 +64,8 @@ impl<'a> Game<'a> {
         let mut last_time = std::time::Instant::now();
 
         loop {
-            self.renderer.render(&self.world, &self.player);
+            self.renderer
+                .render(&self.world, &self.player, &self.texture_manager);
             self.event_handler.pull_events(&mut self.player);
             let current_time = std::time::Instant::now();
             delta_time = (current_time - last_time).as_secs_f32();
