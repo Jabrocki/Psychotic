@@ -7,19 +7,19 @@ use sdl2::{
 };
 
 pub struct TextureData {
-    width: u32,
-    height: u32,
-    data: Vec<Color>,
+    pub width: u32,
+    pub height: u32,
+    pub data: Vec<u32>,
 }
 
 pub struct TextureManager {
-    textures: HashMap<u8, TextureData>,
+    textures: Vec<Option<TextureData>>,
 }
 
 impl TextureManager {
     pub fn new() -> Self {
         Self {
-            textures: HashMap::new(),
+            textures: (0..256).map(|_| None).collect(),
         }
     }
 
@@ -27,42 +27,25 @@ impl TextureManager {
         let surface = Surface::from_file(path).expect("Failed to load texture");
 
         let opt_surface = surface
-            .convert_format(PixelFormatEnum::RGB24)
+            .convert_format(PixelFormatEnum::ABGR8888)
             .expect("Failed to convert surface format");
 
         let width = opt_surface.width();
         let height = opt_surface.height();
-        let pitch = opt_surface.pitch() as usize;
 
-        let mut pixels = Vec::<Color>::with_capacity((width * height) as usize);
-        let data = opt_surface.without_lock().unwrap();
+        let data = opt_surface.with_lock(|data| unsafe {
+            std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4).to_vec()
+        });
 
-        for y in 0..height {
-            for x in 0..width {
-                let offset = (y as usize * pitch) + (x as usize * 3);
-
-                let color = Color::RGB(data[offset], data[offset + 1], data[offset + 2]);
-                pixels.push(color);
-            }
-        }
-
-        self.textures.insert(
-            id,
-            TextureData {
-                width,
-                height,
-                data: pixels,
-            },
-        );
+        self.textures[id as usize] = Some(TextureData {
+            width,
+            height,
+            data,
+        });
     }
 
-    pub fn get_texture_color(&self, id: u8, x: u32, y: u32) -> Option<Color> {
-        self.textures.get(&id).and_then(|texture| {
-            if x < texture.width && y < texture.height {
-                Some(texture.data[(y * texture.width + x) as usize])
-            } else {
-                None
-            }
-        })
+    #[inline(always)]
+    pub fn get_texture(&self, id: u8) -> Option<&TextureData> {
+        self.textures[id as usize].as_ref()
     }
 }

@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
@@ -102,7 +104,7 @@ impl<'a> Game<'a> {
         texture_manager.load_static(1, "images/colorstone.png");
         texture_manager.load_static(2, "images/greystone.png");
         texture_manager.load_static(3, "images/wood.png");
-        texture_manager.load_static(4, "images/colorstone.png");
+        texture_manager.load_static(4, "images/redbrick.png");
 
         Self {
             world,
@@ -115,6 +117,8 @@ impl<'a> Game<'a> {
     pub fn run(&mut self) {
         let mut delta_time: f32;
         let mut last_time = std::time::Instant::now();
+        let mut frame_count = 0;
+        let mut timer = Instant::now();
 
         loop {
             self.renderer
@@ -124,6 +128,13 @@ impl<'a> Game<'a> {
             delta_time = (current_time - last_time).as_secs_f32();
             last_time = current_time;
             self.player.update(delta_time);
+
+            frame_count += 1;
+            if timer.elapsed().as_secs() >= 1 {
+                println!("FPS: {}", frame_count);
+                frame_count = 0;
+                timer = Instant::now();
+            }
         }
     }
 }

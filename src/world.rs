@@ -12,7 +12,11 @@ impl World {
     }
 
     pub fn get_tile(&self, x: usize, y: usize) -> u8 {
-        self.map[y][x]
+        if y < self.height && x < self.width {
+            self.map[y][x]
+        } else {
+            1
+        }
     }
 
     pub fn set_tile(&mut self, x: usize, y: usize, tex_id: u8) {

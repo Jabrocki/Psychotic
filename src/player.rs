@@ -22,16 +22,6 @@ impl Player {
         self.position += self.velocity * delta_time;
         self.velocity *= 0.8; // Friction
         self.acceleration = Vector2::new(0.0, 0.0);
-
-        println!(
-            "Position: ({:.2}, {:.2}), Direction: ({:.2}, {:.2})",
-            self.position.x, self.position.y, self.direction.x, self.direction.y
-        );
-
-        println!(
-            "Velocity: ({:.2}, {:.2}), Acceleration: ({:.2}, {:.2})",
-            self.velocity.x, self.velocity.y, self.acceleration.x, self.acceleration.y
-        );
     }
 
     pub fn position(&self) -> Vector2<f32> {
@@ -43,7 +33,6 @@ impl Player {
     }
 
     pub fn up(&mut self) {
-        println!("Moving up");
         self.acceleration += self.direction * 50.0;
     }
 
