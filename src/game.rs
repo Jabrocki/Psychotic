@@ -5,20 +5,21 @@ use crate::{
     texture_manager::TextureManager, world::World,
 };
 
-pub struct Game {
+pub struct Game<'a> {
     world: World,
     player: Player,
-    renderer: Renderer,
+    renderer: Renderer<'a>,
     event_handler: EventHandler,
     texture_manager: TextureManager,
 }
 
-impl Game {
+impl<'a> Game<'a> {
     pub fn new(
         width: u32,
         height: u32,
         canvas: sdl2::render::Canvas<sdl2::video::Window>,
         event_pump: sdl2::EventPump,
+        texture_creator: &'a TextureCreator<WindowContext>,
     ) -> Self {
         // Example 256 x 256 world
         let world = World::new(vec![
@@ -93,8 +94,7 @@ impl Game {
         ]);
 
         let player = Player::new();
-
-        let renderer = Renderer::new(canvas, width, height);
+        let renderer = Renderer::new(canvas, width, height, texture_creator);
         let event_handler = EventHandler::new(event_pump);
         let mut texture_manager = TextureManager::new();
 
@@ -102,7 +102,7 @@ impl Game {
         texture_manager.load_static(1, "images/colorstone.png");
         texture_manager.load_static(2, "images/greystone.png");
         texture_manager.load_static(3, "images/wood.png");
-        texture_manager.load_static(4, "images/redbrick.png");
+        texture_manager.load_static(4, "images/colorstone.png");
 
         Self {
             world,

@@ -2,27 +2,38 @@ use nalgebra::Vector2;
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
     rect::Rect,
-    render::Canvas,
-    video::Window,
+    render::{Canvas, Texture, TextureCreator},
+    video::{Window, WindowContext},
 };
 
 use crate::{player::Player, texture_manager::TextureManager, world::World};
 
-pub struct Renderer {
+pub struct Renderer<'a> {
     canvas: Canvas<Window>,
     window_width: u32,
     window_height: u32,
     screen_buffer: Vec<u32>,
+    texture: Texture<'a>,
 }
 
-impl Renderer {
-    pub fn new(canvas: Canvas<Window>, window_width: u32, window_height: u32) -> Self {
+impl<'a> Renderer<'a> {
+    pub fn new(
+        canvas: Canvas<Window>,
+        window_width: u32,
+        window_height: u32,
+        texture_creator: &'a TextureCreator<WindowContext>,
+    ) -> Self {
         let screen_buffer = vec![0; (window_width * window_height) as usize];
+
+        let texture = texture_creator
+            .create_texture_streaming(PixelFormatEnum::RGBA8888, window_width, window_height)
+            .unwrap();
         Self {
             canvas,
             window_width,
             window_height,
             screen_buffer,
+            texture,
         }
     }
 
@@ -33,16 +44,7 @@ impl Renderer {
 
         self.render_world(world, player, texture_manager);
 
-        let texture_creator = self.canvas.texture_creator();
-        let mut texture = texture_creator
-            .create_texture_streaming(
-                PixelFormatEnum::RGBA8888,
-                self.window_width,
-                self.window_height,
-            )
-            .unwrap();
-
-        texture
+        self.texture
             .update(
                 None,
                 unsafe {
@@ -55,7 +57,7 @@ impl Renderer {
             )
             .unwrap();
 
-        let _ = self.canvas.copy(&texture, None, None);
+        let _ = self.canvas.copy(&self.texture, None, None);
         self.render_debug_info(world, player);
         self.canvas.present();
     }
