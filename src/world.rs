@@ -1,12 +1,14 @@
 pub struct World {
-    map: [[u8; 256]; 256],
+    width: usize,
+    height: usize,
+    map: Vec<Vec<u8>>,
 }
 
 impl World {
-    pub fn new() -> World {
-        World {
-            map: [[0; 256]; 256],
-        }
+    pub fn new(map: Vec<Vec<u8>>) -> Self {
+        let height = map.len();
+        let width = if height > 0 { map[0].len() } else { 0 };
+        Self { width, height, map }
     }
 
     pub fn get_tile(&self, x: usize, y: usize) -> u8 {
@@ -18,10 +20,10 @@ impl World {
     }
 
     pub fn width(&self) -> usize {
-        256
+        self.width
     }
 
     pub fn height(&self) -> usize {
-        256
+        self.height
     }
 }

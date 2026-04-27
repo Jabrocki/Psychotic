@@ -4,14 +4,14 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
-        .window("Psychotic", 800, 600)
+        .window("Psychotic", 1920, 1080)
         .build()
         .unwrap();
     let canvas = window.into_canvas().build().unwrap();
 
     let event_pump = sdl_context.event_pump().unwrap();
 
-    let mut game = Game::new(800, 600, canvas, event_pump);
+    let mut game = Game::new(1920, 1080, canvas, event_pump);
 
     game.run();
 }

@@ -63,6 +63,65 @@ impl Renderer {
     fn render_world(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         let plane = Vector2::new(-player.direction().y * 0.66, player.direction().x * 0.66);
 
+        // Floor casting
+        for y_s in 0..self.window_height {
+            let ray_dir0 = player.direction() - plane;
+            let ray_dir1 = player.direction() + plane;
+
+            let p = y_s as i32 - (self.window_height / 2) as i32;
+            let pos_z = 0.5 * self.window_height as f32;
+
+            let row_distance = pos_z / p as f32;
+
+            let floor_step = row_distance * (ray_dir1 - ray_dir0) / self.window_width as f32;
+            let mut floor_pos = player.position() + row_distance * ray_dir0;
+
+            for x in 0..self.window_width {
+                let tx = ((64.0 * (floor_pos.x - floor_pos.x.floor())) as u32) & 63;
+                let ty = ((64.0 * (floor_pos.y - floor_pos.y.floor())) as u32) & 63;
+
+                floor_pos += floor_step;
+
+                let mut color_floor = texture_manager
+                    .get_texture_color(3, tx, ty)
+                    .unwrap_or(Color::RGB(255, 255, 255));
+
+                let mut color_ceiling = texture_manager
+                    .get_texture_color(4, tx, ty)
+                    .unwrap_or(Color::RGB(255, 255, 255));
+
+                color_floor = Color::RGB(
+                    (color_floor.r as f32 * 0.5) as u8,
+                    (color_floor.g as f32 * 0.5) as u8,
+                    (color_floor.b as f32 * 0.5) as u8,
+                );
+
+                color_ceiling = Color::RGB(
+                    (color_ceiling.r as f32 * 0.5) as u8,
+                    (color_ceiling.g as f32 * 0.5) as u8,
+                    (color_ceiling.b as f32 * 0.5) as u8,
+                );
+
+                let pixel_val_floor = ((color_floor.r as u32) << 24)
+                    | ((color_floor.g as u32) << 16)
+                    | ((color_floor.b as u32) << 8)
+                    | 255;
+
+                let pixel_val_ceiling = ((color_ceiling.r as u32) << 24)
+                    | ((color_ceiling.g as u32) << 16)
+                    | ((color_ceiling.b as u32) << 8)
+                    | 255;
+
+                // Rysujemy podłogę
+                self.screen_buffer[y_s as usize * self.window_width as usize + x as usize] =
+                    pixel_val_floor;
+
+                // Rysujemy sufit
+                self.screen_buffer[(self.window_height - 1 - y_s) as usize
+                    * self.window_width as usize
+                    + x as usize] = pixel_val_ceiling;
+            }
+        }
         for x_s in 0..self.window_width {
             let camera_x = 2.0 * x_s as f32 / self.window_width as f32 - 1.0;
             let ray_dir = player.direction() + plane * camera_x;
