@@ -212,33 +212,35 @@ impl<'a> Renderer<'a> {
             let end = (line_height / 2 + h as i32 / 2).min(h as i32 - 1);
 
             let tile_id = world.get_wall_tile(map_pos.x as usize, map_pos.y as usize);
-            if let Some(wall_tex) = texture_manager.get_texture(tile_id) {
-                let mut wall_x = if side == 0 {
-                    player.position().y + perp_wall_dist * ray_dir.y
-                } else {
-                    player.position().x + perp_wall_dist * ray_dir.x
-                };
-                wall_x -= wall_x.floor();
+            let wall_tex = texture_manager.get_texture(tile_id);
+            if wall_tex.is_none() {
+                continue;
+            }
+            let wall_tex = wall_tex.unwrap();
+            let mut wall_x = if side == 0 {
+                player.position().y + perp_wall_dist * ray_dir.y
+            } else {
+                player.position().x + perp_wall_dist * ray_dir.x
+            };
+            wall_x -= wall_x.floor();
 
-                let mut tex_x = (wall_x * wall_tex.width as f32) as u32;
-                if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
-                    tex_x = wall_tex.width - 1 - (tex_x % wall_tex.width);
+            let mut tex_x = (wall_x * wall_tex.width as f32) as u32;
+            if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
+                tex_x = wall_tex.width - 1 - (tex_x % wall_tex.width);
+            }
+
+            let step_tex = wall_tex.height as f32 / line_height as f32;
+            let mut tex_pos = (start as f32 - h as f32 / 2.0 + line_height as f32 / 2.0) * step_tex;
+
+            for y in start..end {
+                let tex_y = (tex_pos as u32) % wall_tex.height;
+                tex_pos += step_tex;
+
+                let mut color = wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize];
+                if side == 1 {
+                    color = (color & 0xFEFEFEFE) >> 1 | 0xFF000000;
                 }
-
-                let step_tex = wall_tex.height as f32 / line_height as f32;
-                let mut tex_pos =
-                    (start as f32 - h as f32 / 2.0 + line_height as f32 / 2.0) * step_tex;
-
-                for y in start..end {
-                    let tex_y = (tex_pos as u32) % wall_tex.height;
-                    tex_pos += step_tex;
-
-                    let mut color = wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize];
-                    if side == 1 {
-                        color = (color & 0xFEFEFEFE) >> 1 | 0xFF000000;
-                    }
-                    self.screen_buffer[y as usize * w + x_s] = color;
-                }
+                self.screen_buffer[y as usize * w + x_s] = color;
             }
             self.z_buffer[x_s] = perp_wall_dist;
         }
@@ -288,29 +290,29 @@ impl<'a> Renderer<'a> {
             let stop_x = (sprite_width / 2 + sprite_screen_x).min((w - 1) as i32);
 
             let sprite_id = entity.sprite_id();
+            let sprite_tex = texture_manager.get_texture(sprite_id);
+            if sprite_tex.is_none() {
+                continue;
+            }
+            let s_t = sprite_tex.unwrap();
+            for stripe in start_x..stop_x {
+                let tex_x = ((stripe - (sprite_screen_x - sprite_width / 2)) * s_t.width as i32)
+                    / sprite_width;
 
-            if let Some(s_t) = texture_manager.get_texture(sprite_id as u8) {
-                for stripe in start_x..stop_x {
-                    let tex_x = ((stripe - (sprite_screen_x - sprite_width / 2))
-                        * s_t.width as i32)
-                        / sprite_width;
+                if transform.y > 0.0
+                    && stripe > 0
+                    && stripe < w as i32
+                    && transform.y < self.z_buffer[stripe as usize]
+                {
+                    for y in start_y..stop_y {
+                        let d = (y - (h as i32 / 2 - sprite_height / 2)) * s_t.height as i32;
+                        let tex_y = d / sprite_height;
 
-                    if transform.y > 0.0
-                        && stripe > 0
-                        && stripe < w as i32
-                        && transform.y < self.z_buffer[stripe as usize]
-                    {
-                        for y in start_y..stop_y {
-                            let d = (y - (h as i32 / 2 - sprite_height / 2)) * s_t.height as i32;
-                            let tex_y = d / sprite_height;
+                        let s_pixel = s_t.data[(tex_y as u32 * s_t.width + tex_x as u32) as usize];
 
-                            let s_pixel =
-                                s_t.data[(tex_y as u32 * s_t.width + tex_x as u32) as usize];
-
-                            if (s_pixel & 0x00FFFFFF) != 0 {
-                                self.screen_buffer[y as usize * w + stripe as usize] =
-                                    s_pixel | 0xFF000000;
-                            }
+                        if (s_pixel & 0x00FFFFFF) != 0 {
+                            self.screen_buffer[y as usize * w + stripe as usize] =
+                                s_pixel | 0xFF000000;
                         }
                     }
                 }

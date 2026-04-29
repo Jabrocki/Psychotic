@@ -2,7 +2,7 @@ use nalgebra::Vector2;
 
 pub struct Entity {
     position: Vector2<f32>,
-    sprite_id: u32,
+    sprite_id: u8,
 }
 
 impl Entity {
@@ -10,7 +10,7 @@ impl Entity {
         self.position
     }
 
-    pub fn sprite_id(&self) -> u32 {
+    pub fn sprite_id(&self) -> u8 {
         self.sprite_id
     }
 }
@@ -26,7 +26,7 @@ impl EntityManager {
         }
     }
 
-    pub fn add_entity(&mut self, position: Vector2<f32>, sprite_id: u32) {
+    pub fn add_entity(&mut self, position: Vector2<f32>, sprite_id: u8) {
         self.entities.push(Entity {
             position,
             sprite_id,
