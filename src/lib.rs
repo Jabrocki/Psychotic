@@ -1,3 +1,4 @@
+pub mod entity_manger;
 pub mod event_handler;
 pub mod game;
 pub mod player;

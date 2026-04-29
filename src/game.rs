@@ -1,9 +1,10 @@
 use std::time::Instant;
 
+use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    event_handler::EventHandler, player::Player, renderer::Renderer,
+    entity_manger::EntityManager, event_handler::EventHandler, player::Player, renderer::Renderer,
     texture_manager::TextureManager, world::World,
 };
 
@@ -13,6 +14,7 @@ pub struct Game<'a> {
     renderer: Renderer<'a>,
     event_handler: EventHandler,
     texture_manager: TextureManager,
+    entity_manager: EntityManager,
 }
 
 impl<'a> Game<'a> {
@@ -106,12 +108,22 @@ impl<'a> Game<'a> {
         texture_manager.load_static(3, "images/wood.png");
         texture_manager.load_static(4, "images/redbrick.png");
 
+        // Load sprites
+        texture_manager.load_static(10, "images/pillar.png");
+
+        // Entity manager hardcoded for now
+        let mut entity_manager = EntityManager::new();
+        entity_manager.add_entity(Vector2::new(5.5, 5.5), 10);
+        entity_manager.add_entity(Vector2::new(7.5, 5.5), 10);
+
+        entity_manager.add_entity(Vector2::new(2.0, 2.0), 10);
         Self {
             world,
             player,
             renderer,
             event_handler,
             texture_manager,
+            entity_manager,
         }
     }
     pub fn run(&mut self) {
@@ -121,8 +133,12 @@ impl<'a> Game<'a> {
         let mut timer = Instant::now();
 
         loop {
-            self.renderer
-                .render(&self.world, &self.player, &self.texture_manager);
+            self.renderer.render(
+                &self.world,
+                &self.player,
+                &self.texture_manager,
+                &self.entity_manager,
+            );
             self.event_handler.pull_events(&mut self.player);
             let current_time = std::time::Instant::now();
             delta_time = (current_time - last_time).as_secs_f32();

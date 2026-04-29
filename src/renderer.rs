@@ -1,4 +1,6 @@
-use nalgebra::Vector2;
+use std::usize;
+
+use nalgebra::{Matrix2, Vector2};
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
     rect::Rect,
@@ -6,13 +8,19 @@ use sdl2::{
     video::{Window, WindowContext},
 };
 
-use crate::{player::Player, texture_manager::TextureManager, world::World};
+use crate::{
+    entity_manger::{Entity, EntityManager},
+    player::Player,
+    texture_manager::{self, TextureManager},
+    world::World,
+};
 
 pub struct Renderer<'a> {
     canvas: Canvas<Window>,
     window_width: u32,
     window_height: u32,
     screen_buffer: Vec<u32>,
+    z_buffer: Vec<f32>,
     texture: Texture<'a>,
 }
 
@@ -34,13 +42,20 @@ impl<'a> Renderer<'a> {
             window_height,
             screen_buffer,
             texture,
+            z_buffer: vec![0.0; window_width as usize],
         }
     }
 
-    pub fn render(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
+    pub fn render(
+        &mut self,
+        world: &World,
+        player: &Player,
+        texture_manager: &TextureManager,
+        entity_manager: &EntityManager,
+    ) {
         self.screen_buffer.fill(0);
 
-        self.render_world(world, player, texture_manager);
+        self.render_world(world, player, texture_manager, entity_manager);
 
         self.texture
             .update(
@@ -56,12 +71,29 @@ impl<'a> Renderer<'a> {
             .unwrap();
 
         let _ = self.canvas.copy(&self.texture, None, None);
-        self.render_debug_info(world, player);
+        self.render_debug_info(world, player, entity_manager);
         self.canvas.present();
     }
 
-    fn render_world(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
+    fn render_world(
+        &mut self,
+        world: &World,
+        player: &Player,
+        texture_manager: &TextureManager,
+        entity_manager: &EntityManager,
+    ) {
         let plane = Vector2::new(-player.direction().y * 0.66, player.direction().x * 0.66);
+        self.floor_cast(player, texture_manager, plane);
+        self.wall_cast(world, player, plane, texture_manager);
+        self.sprite_cast(player, entity_manager, texture_manager, plane);
+    }
+
+    fn floor_cast(
+        &mut self,
+        player: &Player,
+        texture_manager: &TextureManager,
+        plane: Vector2<f32>,
+    ) {
         let w = self.window_width as usize;
         let h = self.window_height as usize;
 
@@ -96,7 +128,17 @@ impl<'a> Renderer<'a> {
                 }
             }
         }
+    }
 
+    fn wall_cast(
+        &mut self,
+        world: &World,
+        player: &Player,
+        plane: Vector2<f32>,
+        texture_manager: &TextureManager,
+    ) {
+        let w = self.window_width as usize;
+        let h = self.window_height as usize;
         for x_s in 0..w {
             let camera_x = 2.0 * x_s as f32 / w as f32 - 1.0;
             let ray_dir = player.direction() + plane * camera_x;
@@ -174,10 +216,90 @@ impl<'a> Renderer<'a> {
                     self.screen_buffer[y as usize * w + x_s] = color;
                 }
             }
+            self.z_buffer[x_s] = perp_wall_dist;
         }
     }
 
-    fn render_debug_info(&mut self, world: &World, player: &Player) {
+    fn sprite_cast(
+        &mut self,
+        player: &Player,
+        entity_manager: &EntityManager,
+        texture_manager: &TextureManager,
+        plane: Vector2<f32>,
+    ) {
+        let w = self.window_width as usize;
+        let h = self.window_height as usize;
+
+        let entities = entity_manager.get_entities();
+        let mut sorted_entities: Vec<&Entity> = entities.iter().collect();
+        sorted_entities.sort_unstable_by(|a, b| {
+            let dist_a = (player.position() - a.position()).norm_squared();
+            let dist_b = (player.position() - b.position()).norm_squared();
+            dist_b.partial_cmp(&dist_a).unwrap()
+        });
+
+        for entity in sorted_entities {
+            let sprite_vec = entity.position() - player.position();
+
+            let inv_det = 1.0 / (plane.x * player.direction().y - player.direction().x * plane.y);
+
+            let transform = inv_det
+                * Matrix2::new(
+                    player.direction().y,
+                    -player.direction().x,
+                    -plane.y,
+                    plane.x,
+                )
+                * sprite_vec;
+
+            let sprite_screen_x = ((w as f32 / 2.0) * (1.0 + transform.x / transform.y)) as i32;
+            let sprite_height = ((h as f32 / transform.y) as i32).abs();
+
+            let start_y = (-sprite_height / 2 + (h as i32) / 2).max(0);
+            let stop_y = (sprite_height / 2 + (h as i32) / 2).min((h - 1) as i32);
+
+            let sprite_width = ((h as f32 / transform.y) as i32).abs();
+
+            let start_x = (-sprite_width / 2 + sprite_screen_x).max(0);
+            let stop_x = (sprite_width / 2 + sprite_screen_x).min((w - 1) as i32);
+
+            let sprite_id = entity.sprite_id();
+
+            if let Some(s_t) = texture_manager.get_texture(sprite_id as u8) {
+                for stripe in start_x..stop_x {
+                    let tex_x = ((stripe - (sprite_screen_x - sprite_width / 2))
+                        * s_t.width as i32)
+                        / sprite_width;
+
+                    if transform.y > 0.0
+                        && stripe > 0
+                        && stripe < w as i32
+                        && transform.y < self.z_buffer[stripe as usize]
+                    {
+                        for y in start_y..stop_y {
+                            let d = (y - (h as i32 / 2 - sprite_height / 2)) * s_t.height as i32;
+                            let tex_y = d / sprite_height;
+
+                            let s_pixel =
+                                s_t.data[(tex_y as u32 * s_t.width + tex_x as u32) as usize];
+
+                            if (s_pixel & 0x00FFFFFF) != 0 {
+                                self.screen_buffer[y as usize * w + stripe as usize] =
+                                    s_pixel | 0xFF000000;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn render_debug_info(
+        &mut self,
+        world: &World,
+        player: &Player,
+        entity_manager: &EntityManager,
+    ) {
         self.canvas.set_draw_color(Color::RGB(255, 255, 255));
         for y in 0..world.height() {
             for x in 0..world.width() {
@@ -195,6 +317,15 @@ impl<'a> Renderer<'a> {
             3,
             3,
         ));
+        self.canvas.set_draw_color(Color::RGB(0, 255, 0));
+        for entity in entity_manager.get_entities() {
+            let _ = self.canvas.fill_rect(Rect::new(
+                (entity.position().x * 3.0) as i32,
+                (entity.position().y * 3.0) as i32,
+                3,
+                3,
+            ));
+        }
     }
 
     pub fn set_title(&mut self, title: &str) {
