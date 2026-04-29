@@ -1,5 +1,3 @@
-use std::usize;
-
 use nalgebra::{Matrix2, Vector2};
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
@@ -11,7 +9,7 @@ use sdl2::{
 use crate::{
     entity_manger::{Entity, EntityManager},
     player::Player,
-    texture_manager::{self, TextureManager},
+    texture_manager::TextureManager,
     world::World,
 };
 
@@ -23,6 +21,13 @@ pub struct Renderer<'a> {
     z_buffer: Vec<f32>,
     texture: Texture<'a>,
 }
+
+// TODO: zrób pożądek z typami za dużo catowania
+// TODO: generalny refactoring renderera, żeby był bardziej modularny i czytelny, można podzielić
+// na pliki
+// TODO: zrób drugą mapę w WORLD ale dla podług i sufitów
+// TODO: ciekawe sprity typu drzwi, które można otwierać i zamykać
+// TODO: do drzwi przyciski i inne fajne rzeczy
 
 impl<'a> Renderer<'a> {
     pub fn new(
@@ -82,7 +87,12 @@ impl<'a> Renderer<'a> {
         texture_manager: &TextureManager,
         entity_manager: &EntityManager,
     ) {
-        let plane = Vector2::new(-player.direction().y * 0.66, player.direction().x * 0.66);
+        // TODO: make it argument for better control over fov
+        let fov_multiplier = 1.2;
+        let plane = Vector2::new(
+            -player.direction().y * fov_multiplier,
+            player.direction().x * fov_multiplier,
+        );
         self.floor_cast(player, texture_manager, plane);
         self.wall_cast(world, player, plane, texture_manager);
         self.sprite_cast(player, entity_manager, texture_manager, plane);
@@ -99,6 +109,7 @@ impl<'a> Renderer<'a> {
 
         let floor_tex = texture_manager.get_texture(3);
         let ceil_tex = texture_manager.get_texture(4);
+        // TODO: mapa textur podłogi i sufitu - różne tekstury dla różnych miejsc
 
         if let (Some(f_t), Some(c_t)) = (floor_tex, ceil_tex) {
             let ray_dir0 = player.direction() - plane;
@@ -172,7 +183,7 @@ impl<'a> Renderer<'a> {
                     map_pos.y += step.y;
                     side = 1;
                 }
-                if world.get_tile(map_pos.x as usize, map_pos.y as usize) != 0 {
+                if world.get_wall_tile(map_pos.x as usize, map_pos.y as usize) != 0 {
                     hit = true;
                 }
             }
@@ -187,7 +198,7 @@ impl<'a> Renderer<'a> {
             let start = (-line_height / 2 + h as i32 / 2).max(0);
             let end = (line_height / 2 + h as i32 / 2).min(h as i32 - 1);
 
-            let tile_id = world.get_tile(map_pos.x as usize, map_pos.y as usize);
+            let tile_id = world.get_wall_tile(map_pos.x as usize, map_pos.y as usize);
             if let Some(wall_tex) = texture_manager.get_texture(tile_id) {
                 let mut wall_x = if side == 0 {
                     player.position().y + perp_wall_dist * ray_dir.y
@@ -303,7 +314,7 @@ impl<'a> Renderer<'a> {
         self.canvas.set_draw_color(Color::RGB(255, 255, 255));
         for y in 0..world.height() {
             for x in 0..world.width() {
-                if world.get_tile(x, y) != 0 {
+                if world.get_wall_tile(x, y) != 0 {
                     let _ = self
                         .canvas
                         .fill_rect(Rect::new((x as i32) * 3, (y as i32) * 3, 3, 3));
