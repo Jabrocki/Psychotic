@@ -1,3 +1,5 @@
+use std::usize;
+
 use nalgebra::{Matrix2, Vector2};
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
@@ -93,13 +95,14 @@ impl<'a> Renderer<'a> {
             -player.direction().y * fov_multiplier,
             player.direction().x * fov_multiplier,
         );
-        self.floor_cast(player, texture_manager, plane);
+        self.floor_cast(world, player, texture_manager, plane);
         self.wall_cast(world, player, plane, texture_manager);
         self.sprite_cast(player, entity_manager, texture_manager, plane);
     }
 
     fn floor_cast(
         &mut self,
+        world: &World,
         player: &Player,
         texture_manager: &TextureManager,
         plane: Vector2<f32>,
@@ -107,36 +110,46 @@ impl<'a> Renderer<'a> {
         let w = self.window_width as usize;
         let h = self.window_height as usize;
 
-        let floor_tex = texture_manager.get_texture(3);
-        let ceil_tex = texture_manager.get_texture(4);
-        // TODO: mapa textur podłogi i sufitu - różne tekstury dla różnych miejsc
+        let ray_dir0 = player.direction() - plane;
+        let ray_dir1 = player.direction() + plane;
 
-        if let (Some(f_t), Some(c_t)) = (floor_tex, ceil_tex) {
-            let ray_dir0 = player.direction() - plane;
-            let ray_dir1 = player.direction() + plane;
+        for y_s in (h / 2 + 1)..h {
+            let p = y_s as i32 - (h / 2) as i32;
+            let row_distance = (0.5 * h as f32) / p as f32;
 
-            for y_s in (h / 2 + 1)..h {
-                let p = y_s as i32 - (h / 2) as i32;
-                let row_distance = (0.5 * h as f32) / p as f32;
+            let floor_step = row_distance * (ray_dir1 - ray_dir0) / w as f32;
+            let mut floor_pos = player.position() + row_distance * ray_dir0;
 
-                let floor_step = row_distance * (ray_dir1 - ray_dir0) / w as f32;
-                let mut floor_pos = player.position() + row_distance * ray_dir0;
+            for x in 0..w {
+                let map_x = floor_pos.x as usize;
+                let map_y = floor_pos.y as usize;
+                let floor_id = world.get_floor_tile(map_x, map_y);
+                let ceil_id = world.get_ceil_tile(map_x, map_y);
 
-                for x in 0..w {
-                    let tx = ((f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as u32)
-                        % f_t.width;
-                    let ty = ((f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as u32)
-                        % f_t.height;
+                let floor_tex = texture_manager.get_texture(floor_id);
+                let ceil_tex = texture_manager.get_texture(ceil_id);
+
+                if floor_tex.is_none() || ceil_tex.is_none() {
                     floor_pos += floor_step;
-
-                    let f_pixel = f_t.data[(ty * f_t.width + tx) as usize];
-                    let c_pixel = c_t.data[(ty * c_t.width + tx) as usize];
-
-                    let f_shaded = (f_pixel & 0xFEFEFEFE) >> 1 | 0xFF000000;
-
-                    self.screen_buffer[y_s * w + x] = f_shaded;
-                    self.screen_buffer[(h - 1 - y_s) * w + x] = c_pixel;
+                    continue;
                 }
+
+                let f_t = floor_tex.unwrap();
+                let c_t = ceil_tex.unwrap();
+                let tx =
+                    ((f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as u32) % f_t.width;
+                let ty =
+                    ((f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as u32) % f_t.height;
+
+                let f_pixel = f_t.data[(ty * f_t.width + tx) as usize];
+                let c_pixel = c_t.data[(ty * c_t.width + tx) as usize];
+
+                let f_shaded = (f_pixel & 0xFEFEFEFE) >> 1 | 0xFF000000;
+
+                self.screen_buffer[y_s * w + x] = f_shaded;
+                self.screen_buffer[(h - 1 - y_s) * w + x] = c_pixel;
+
+                floor_pos += floor_step;
             }
         }
     }
