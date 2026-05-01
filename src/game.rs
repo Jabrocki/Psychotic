@@ -4,7 +4,7 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entity_manger::EntityManager, event_handler::EventHandler, player::Player, renderer::Renderer,
+    entity_manager::EntityManager, event_handler::EventHandler, player::Player, renderer::Renderer,
     texture_manager::TextureManager, world::World,
 };
 

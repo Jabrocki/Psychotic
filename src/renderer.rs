@@ -9,7 +9,7 @@ use sdl2::{
 };
 
 use crate::{
-    entity_manger::{Entity, EntityManager},
+    entity_manager::{Entity, EntityManager, EntityPtr},
     player::Player,
     texture_manager::TextureManager,
     world::World,
@@ -68,7 +68,7 @@ impl<'a> Renderer<'a> {
             .update(
                 None,
                 unsafe {
-                    std::slice::from_raw_parts(
+                	std::slice::from_raw_parts( // segfault w debug
                         self.screen_buffer.as_ptr() as *const u8,
                         self.screen_buffer.len() * 4,
                     )
@@ -76,7 +76,6 @@ impl<'a> Renderer<'a> {
                 (self.window_width * 4) as usize,
             )
             .unwrap();
-
         let _ = self.canvas.copy(&self.texture, None, None);
         self.render_debug_info(world, player, entity_manager);
         self.canvas.present();
@@ -257,7 +256,7 @@ impl<'a> Renderer<'a> {
         let h = self.window_height as usize;
 
         let entities = entity_manager.get_entities();
-        let mut sorted_entities: Vec<&Entity> = entities.iter().collect();
+        let mut sorted_entities: Vec<&EntityPtr> = entities.iter().collect();
         sorted_entities.sort_unstable_by(|a, b| {
             let dist_a = (player.position() - a.position()).norm_squared();
             let dist_b = (player.position() - b.position()).norm_squared();
