@@ -72,10 +72,10 @@ impl<'a> Game<'a> {
 
         // Entity manager hardcoded for now
         let mut entity_manager = EntityManager::new();
-        entity_manager.add_entity(Vector2::new(5.5, 5.5), 10);
-        entity_manager.add_entity(Vector2::new(7.5, 5.5), 10);
+        entity_manager.add_entity_dummy(Vector2::new(5.5, 5.5), 10);
+        entity_manager.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
 
-        entity_manager.add_entity(Vector2::new(2.0, 2.0), 10);
+        entity_manager.add_entity_dummy(Vector2::new(2.0, 2.0), 10);
         Self {
             world,
             player,
@@ -102,6 +102,7 @@ impl<'a> Game<'a> {
             let current_time = std::time::Instant::now();
             delta_time = (current_time - last_time).as_secs_f32();
             last_time = current_time;
+            self.entity_manager.update();
             self.player.update(delta_time);
 
             frame_count += 1;
