@@ -264,6 +264,10 @@ impl<'a> Renderer<'a> {
         });
 
         for entity in sorted_entities {
+        	if entity.sprite_id().is_none(){
+       			continue;
+         	}
+
             let sprite_vec = entity.position() - player.position();
 
             let inv_det = 1.0 / (plane.x * player.direction().y - player.direction().x * plane.y);
@@ -288,7 +292,7 @@ impl<'a> Renderer<'a> {
             let start_x = (-sprite_width / 2 + sprite_screen_x).max(0);
             let stop_x = (sprite_width / 2 + sprite_screen_x).min((w - 1) as i32);
 
-            let sprite_id = entity.sprite_id();
+            let sprite_id = entity.sprite_id().unwrap();
             let sprite_tex = texture_manager.get_texture(sprite_id);
             if sprite_tex.is_none() {
                 continue;

@@ -4,13 +4,13 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entity_manager::EntityManager, event_handler::EventHandler, player::Player, renderer::Renderer,
+    entity_manager::{EntityManager, EntityPtr}, event_handler::EventHandler, player::{self, Player}, renderer::Renderer,
     texture_manager::TextureManager, world::World,
 };
 
 pub struct Game<'a> {
     world: World,
-    player: Player,
+    player: &'static mut Player,
     renderer: Renderer<'a>,
     event_handler: EventHandler,
     texture_manager: TextureManager,
@@ -56,7 +56,7 @@ impl<'a> Game<'a> {
         ];
 
         let world = World::new(wall_map, ceil_map, floor_map);
-        let player = Player::new();
+        let mut player = Player::new();
         let renderer = Renderer::new(canvas, width, height, texture_creator);
         let event_handler = EventHandler::new(event_pump);
         let mut texture_manager = TextureManager::new();
@@ -75,7 +75,13 @@ impl<'a> Game<'a> {
         entity_manager.add_entity_dummy(Vector2::new(5.5, 5.5), 10);
         entity_manager.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
 
+        let mut player_ptr = EntityPtr::new(player);
+        let player = player_ptr.direct();
+
+        entity_manager.force_add_entity(player_ptr);
+
         entity_manager.add_entity_dummy(Vector2::new(2.0, 2.0), 10);
+
         Self {
             world,
             player,

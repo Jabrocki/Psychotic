@@ -17,7 +17,7 @@ pub trait Entity{
 
 	fn update(&mut self, entities: &mut EntityManager);
 
-	fn sprite_id(&self) -> u8;
+	fn sprite_id(&self) -> Option<u8>;
 }
 
 #[derive(Clone, Copy)]
@@ -34,7 +34,7 @@ pub struct EntityPtr{
 impl DerefMut for EntityPtr{
 
     fn deref_mut(&mut self) -> &mut Self::Target {
-    	unsafe { transmute(self.vtable) }
+    	unsafe { &mut *(self.vtable) }
     }
 }
 
@@ -42,37 +42,19 @@ impl Deref for EntityPtr{
     type Target = dyn Entity;
 
     fn deref(&self) -> &Self::Target {
-    	unsafe { transmute(self.vtable) }
+    	unsafe { & *(self.vtable) }
     }
-}
-
-struct TempContainer<T>{
-	val: T,
-}
-
-impl<T> Drop for TempContainer<T>{
-    fn drop(&mut self) {
-
-    }
-}
-
-impl<T> TempContainer<T>{
-	fn new(m: T) -> TempContainer<T>{
-		TempContainer { val: m }
-	}
 }
 
 impl EntityPtr{
-	fn from<T: Entity + 'static>(entity: T) -> EntityPtr{
-		let no_drop_entity : TempContainer<T> = TempContainer::new(entity); // hijack entity in order not to call drop
-
+	pub fn new<T: Entity + 'static>(entity: T) -> EntityPtr{
 		let layout = Layout::new::<T>();
 
 		let data: *mut u8 = unsafe{ alloc(layout) }; // malloc
 		let data_t: *mut T = data as *mut T;
-		unsafe{
-			copy(&no_drop_entity.val, data_t, size_of::<T>());
-		}
+
+		unsafe { std::ptr::write(data_t, entity); }
+
 		let vtable: *mut dyn Entity = data_t;
 		let dynamic: *mut dyn Any = data_t; // for downcasting
 
@@ -87,7 +69,7 @@ impl EntityPtr{
 		}
 	}
 
-	fn id(&self) -> entity_id{
+	pub fn id(&self) -> entity_id{
 		self.id
 	}
 
@@ -96,6 +78,10 @@ impl EntityPtr{
 			self.vtable.drop_in_place();
 			dealloc(self.data, self.layout);
 		}
+	}
+
+	pub fn direct<T>(&mut self) -> &'static mut T {
+		unsafe {&mut *(self.data as *mut T)}
 	}
 }
 
@@ -117,8 +103,8 @@ impl Entity for Dummy{
 
     }
 
-    fn sprite_id(&self) -> u8 {
-    	self.sprite_id
+    fn sprite_id(&self) -> Option<u8> {
+    	Some(self.sprite_id)
     }
 }
 
@@ -145,7 +131,7 @@ impl EntityManager {
 
     // entities should not call this
     pub fn add_entity_dummy(&mut self, position: Vector2<f32>, sprite_id: u8) {
-        self.entities.push(EntityPtr::from::<Dummy>(Dummy::new (
+        self.entities.push(EntityPtr::new::<Dummy>(Dummy::new (
             position,
             sprite_id,
         )));
@@ -153,6 +139,10 @@ impl EntityManager {
 
     pub fn stage_add_entity(&mut self, entity: EntityPtr){
     	self.stage_added.push(entity);
+    }
+
+    pub fn force_add_entity(&mut self, entity: EntityPtr){
+    	self.entities.push(entity);
     }
 
     pub fn get_entities(&self) -> &Vec<EntityPtr> {

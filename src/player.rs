@@ -1,5 +1,7 @@
 use nalgebra::{Rotation2, Vector2};
 
+use crate::entity_manager::Entity;
+
 pub struct Player {
     position: Vector2<f32>,
     direction: Vector2<f32>,
@@ -59,5 +61,23 @@ impl Player {
 impl Default for Player {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Entity for Player {
+    fn position(&self) -> Vector2<f32> {
+    	self.position
+    }
+
+    fn set_position(&mut self, pos: Vector2<f32>) {
+        self.position = pos;
+    }
+
+    fn update(&mut self, entities: &mut crate::entity_manager::EntityManager) {
+
+    }
+
+    fn sprite_id(&self) -> Option<u8> {
+    	None
     }
 }
