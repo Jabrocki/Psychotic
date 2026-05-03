@@ -19,8 +19,8 @@ pub struct Game<'a> {
 
 impl<'a> Game<'a> {
     pub fn new(
-        width: u32,
-        height: u32,
+        width: usize,
+        height: usize,
         canvas: sdl2::render::Canvas<sdl2::video::Window>,
         event_pump: sdl2::EventPump,
         texture_creator: &'a TextureCreator<WindowContext>,
@@ -74,7 +74,6 @@ impl<'a> Game<'a> {
         let mut entity_manager = EntityManager::new();
         entity_manager.add_entity(Vector2::new(5.5, 5.5), 10);
         entity_manager.add_entity(Vector2::new(7.5, 5.5), 10);
-
         entity_manager.add_entity(Vector2::new(2.0, 2.0), 10);
         Self {
             world,
