@@ -7,7 +7,7 @@ use sdl2::{
 };
 
 use crate::{
-    entity_manger::{Entity, EntityManager},
+    entity_manager::{Entity, EntityManager, EntityPtr},
     player::Player,
     texture_manager::TextureManager,
     world::World,
@@ -69,16 +69,10 @@ impl<'a> Renderer<'a> {
         self.texture
             .update(
                 None,
-                unsafe {
-                    std::slice::from_raw_parts(
-                        self.screen_buffer.as_ptr() as *const u8,
-                        self.screen_buffer.len() * 4,
-                    )
-                },
-                self.window_width * 4,
+                bytemuck::cast_slice(self.screen_buffer.as_slice()),
+                (self.window_width * 4) as usize,
             )
             .unwrap();
-
         let _ = self.canvas.copy(&self.texture, None, None);
         self.render_debug_info(world, player, entity_manager);
         self.canvas.present();
@@ -255,7 +249,7 @@ impl<'a> Renderer<'a> {
         plane: Vector2<f32>,
     ) {
         let entities = entity_manager.get_entities();
-        let mut sorted_entities: Vec<&Entity> = entities.iter().collect();
+        let mut sorted_entities: Vec<&EntityPtr> = entities.iter().collect();
         sorted_entities.sort_unstable_by(|a, b| {
             let dist_a = (player.position() - a.position()).norm_squared();
             let dist_b = (player.position() - b.position()).norm_squared();
@@ -263,6 +257,10 @@ impl<'a> Renderer<'a> {
         });
 
         for entity in sorted_entities {
+        	if entity.sprite_id().is_none(){
+       			continue;
+         	}
+
             let sprite_vec = entity.position() - player.position();
 
             let inv_det = 1.0 / (plane.x * player.direction().y - player.direction().x * plane.y);
@@ -289,7 +287,7 @@ impl<'a> Renderer<'a> {
             let start_x = (-sprite_width / 2 + sprite_screen_x).max(0);
             let stop_x = (sprite_width / 2 + sprite_screen_x).min((self.window_width - 1) as i32);
 
-            let sprite_id = entity.sprite_id();
+            let sprite_id = entity.sprite_id().unwrap();
             let sprite_tex = texture_manager.get_texture(sprite_id);
             if sprite_tex.is_none() {
                 continue;
