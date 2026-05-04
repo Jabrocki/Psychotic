@@ -1,25 +1,19 @@
-use std::collections::HashMap;
+use sdl2::{image::LoadSurface, pixels::PixelFormatEnum, surface::Surface};
 
-use sdl2::{
-    image::LoadSurface,
-    pixels::{Color, PixelFormatEnum},
-    surface::Surface,
-};
-
-pub struct TextureData {
+pub struct TextureDataStatic {
     pub width: u32,
     pub height: u32,
     pub data: Vec<u32>,
 }
 
 pub struct TextureManager {
-    textures: Vec<Option<TextureData>>,
+    textures_static: Vec<Option<TextureDataStatic>>,
 }
 
 impl TextureManager {
     pub fn new() -> Self {
         Self {
-            textures: (0..256).map(|_| None).collect(),
+            textures_static: (0..256).map(|_| None).collect(),
         }
     }
 
@@ -37,15 +31,14 @@ impl TextureManager {
             std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4).to_vec()
         });
 
-        self.textures[id as usize] = Some(TextureData {
+        self.textures_static[id as usize] = Some(TextureDataStatic {
             width,
             height,
             data,
         });
     }
 
-    #[inline(always)]
-    pub fn get_texture(&self, id: u8) -> Option<&TextureData> {
-        self.textures[id as usize].as_ref()
+    pub fn get_texture(&self, id: u8) -> Option<&TextureDataStatic> {
+        self.textures_static[id as usize].as_ref()
     }
 }
