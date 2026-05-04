@@ -67,12 +67,7 @@ impl<'a> Renderer<'a> {
         self.texture
             .update(
                 None,
-                unsafe {
-                	std::slice::from_raw_parts( // segfault w debug
-                        self.screen_buffer.as_ptr() as *const u8,
-                        self.screen_buffer.len() * 4,
-                    )
-                },
+                bytemuck::cast_slice(self.screen_buffer.as_slice()),
                 (self.window_width * 4) as usize,
             )
             .unwrap();
