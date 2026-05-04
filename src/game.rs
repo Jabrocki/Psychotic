@@ -19,8 +19,8 @@ pub struct Game<'a> {
 
 impl<'a> Game<'a> {
     pub fn new(
-        width: u32,
-        height: u32,
+        width: usize,
+        height: usize,
         canvas: sdl2::render::Canvas<sdl2::video::Window>,
         event_pump: sdl2::EventPump,
         texture_creator: &'a TextureCreator<WindowContext>,
