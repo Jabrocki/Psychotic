@@ -15,7 +15,7 @@ pub trait Entity{
 	fn position(&self) -> Vector2<f32>;
 	fn set_position(&mut self, pos: Vector2<f32>);
 
-	fn update(&mut self, entities: &mut EntityManager);
+	fn update(&mut self, entities: &mut EntityManager, delta_time: f32);
 
 	fn sprite_id(&self) -> Option<u8>;
 }
@@ -99,7 +99,7 @@ impl Entity for Dummy{
         self.pos = pos;
     }
 
-    fn update(&mut self, entities: &mut EntityManager) {
+    fn update(&mut self, entities: &mut EntityManager, delta_time: f32) {
 
     }
 
@@ -153,7 +153,7 @@ impl EntityManager {
     	self.stage_removed.push(id);
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, delta_time: f32) {
        	// remove all entities to be removed
         let staged_destroy = self.entities.iter()
         	.filter(|&ent| self.stage_removed.contains(&ent.id));
@@ -175,7 +175,7 @@ impl EntityManager {
      	let self2: &mut Self = unsafe {transmute(self2)}; // ignore guarantees about two mutable refs
 
     	for ent in &mut self.entities{
-     		ent.update(self2);
+     		ent.update(self2, delta_time);
      	}
 
     }

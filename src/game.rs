@@ -108,8 +108,7 @@ impl<'a> Game<'a> {
             let current_time = std::time::Instant::now();
             delta_time = (current_time - last_time).as_secs_f32();
             last_time = current_time;
-            self.entity_manager.update();
-            self.player.update(delta_time);
+            self.entity_manager.update(delta_time);
 
             frame_count += 1;
             if timer.elapsed().as_secs() >= 1 {
