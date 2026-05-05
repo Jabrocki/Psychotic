@@ -4,7 +4,7 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entity_manager::{EntityManager, EntityPtr}, event_handler::EventHandler, player::{self, Player}, renderer::Renderer,
+    entity_manager::EntityPtr, event_handler::EventHandler, player::Player, renderer::Renderer,
     texture_manager::TextureManager, world::World,
 };
 
@@ -14,7 +14,6 @@ pub struct Game<'a> {
     renderer: Renderer<'a>,
     event_handler: EventHandler,
     texture_manager: TextureManager,
-    entity_manager: EntityManager,
 }
 
 impl<'a> Game<'a> {
@@ -55,8 +54,8 @@ impl<'a> Game<'a> {
             vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
         ];
 
-        let world = World::new(wall_map, ceil_map, floor_map);
-        let mut player = Player::new();
+        let mut world = World::new(wall_map, ceil_map, floor_map);
+        let player = Player::new();
         let renderer = Renderer::new(canvas, width, height, texture_creator);
         let event_handler = EventHandler::new(event_pump);
         let mut texture_manager = TextureManager::new();
@@ -70,17 +69,16 @@ impl<'a> Game<'a> {
         // Load sprites
         texture_manager.load_static(10, "images/pillar.png");
 
-        // Entity manager hardcoded for now
-        let mut entity_manager = EntityManager::new();
-        entity_manager.add_entity_dummy(Vector2::new(5.5, 5.5), 10);
-        entity_manager.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
+        // World hardcoded for now
+        world.add_entity_dummy(Vector2::new(5.5, 5.5), 10);
+        world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
 
         let mut player_ptr = EntityPtr::new(player);
         let player = player_ptr.direct();
 
-        entity_manager.force_add_entity(player_ptr);
+        world.force_add_entity(player_ptr);
 
-        entity_manager.add_entity_dummy(Vector2::new(2.0, 2.0), 10);
+        world.add_entity_dummy(Vector2::new(2.0, 2.0), 10);
 
         Self {
             world,
@@ -88,7 +86,6 @@ impl<'a> Game<'a> {
             renderer,
             event_handler,
             texture_manager,
-            entity_manager,
         }
     }
     pub fn run(&mut self) {
@@ -98,17 +95,13 @@ impl<'a> Game<'a> {
         let mut timer = Instant::now();
 
         loop {
-            self.renderer.render(
-                &self.world,
-                &self.player,
-                &self.texture_manager,
-                &self.entity_manager,
-            );
-            self.event_handler.pull_events(&mut self.player);
+            self.renderer
+                .render(&self.world, self.player, &self.texture_manager);
+            self.event_handler.pull_events(self.player);
             let current_time = std::time::Instant::now();
             delta_time = (current_time - last_time).as_secs_f32();
             last_time = current_time;
-            self.entity_manager.update(delta_time);
+            self.world.update(delta_time);
 
             frame_count += 1;
             if timer.elapsed().as_secs() >= 1 {

@@ -7,10 +7,7 @@ use sdl2::{
 };
 
 use crate::{
-    entity_manager::{Entity, EntityManager, EntityPtr},
-    player::Player,
-    texture_manager::TextureManager,
-    world::World,
+    entity_manager::EntityPtr, player::Player, texture_manager::TextureManager, world::World,
 };
 
 pub struct Renderer<'a> {
@@ -22,7 +19,6 @@ pub struct Renderer<'a> {
     texture: Texture<'a>,
 }
 
-// TODO: zrób pożądek z typami za dużo catowania
 // TODO: generalny refactoring renderera, żeby był bardziej modularny i czytelny, można podzielić
 // na pliki
 // TODO: zrób drugą mapę w WORLD ale dla podług i sufitów
@@ -56,35 +52,23 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    pub fn render(
-        &mut self,
-        world: &World,
-        player: &Player,
-        texture_manager: &TextureManager,
-        entity_manager: &EntityManager,
-    ) {
+    pub fn render(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         self.screen_buffer.fill(0);
-        self.render_world(world, player, texture_manager, entity_manager);
+        self.render_world(world, player, texture_manager);
 
         self.texture
             .update(
                 None,
                 bytemuck::cast_slice(self.screen_buffer.as_slice()),
-                (self.window_width * 4) as usize,
+                self.window_width * 4,
             )
             .unwrap();
         let _ = self.canvas.copy(&self.texture, None, None);
-        self.render_debug_info(world, player, entity_manager);
+        self.render_debug_info(world, player);
         self.canvas.present();
     }
 
-    fn render_world(
-        &mut self,
-        world: &World,
-        player: &Player,
-        texture_manager: &TextureManager,
-        entity_manager: &EntityManager,
-    ) {
+    fn render_world(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         // TODO: make it argument for better control over fov
         let fov_multiplier = 1.2;
         let plane = Vector2::new(
@@ -93,7 +77,7 @@ impl<'a> Renderer<'a> {
         );
         self.floor_cast(world, player, texture_manager, plane);
         self.wall_cast(world, player, plane, texture_manager);
-        self.sprite_cast(player, entity_manager, texture_manager, plane);
+        self.sprite_cast(player, world, texture_manager, plane);
     }
 
     fn floor_cast(
@@ -244,11 +228,11 @@ impl<'a> Renderer<'a> {
     fn sprite_cast(
         &mut self,
         player: &Player,
-        entity_manager: &EntityManager,
+        world: &World,
         texture_manager: &TextureManager,
         plane: Vector2<f32>,
     ) {
-        let entities = entity_manager.get_entities();
+        let entities = world.get_entities();
         let mut sorted_entities: Vec<&EntityPtr> = entities.iter().collect();
         sorted_entities.sort_unstable_by(|a, b| {
             let dist_a = (player.position() - a.position()).norm_squared();
@@ -257,9 +241,9 @@ impl<'a> Renderer<'a> {
         });
 
         for entity in sorted_entities {
-        	if entity.sprite_id().is_none(){
-       			continue;
-         	}
+            if entity.sprite_id().is_none() {
+                continue;
+            }
 
             let sprite_vec = entity.position() - player.position();
 
@@ -319,12 +303,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn render_debug_info(
-        &mut self,
-        world: &World,
-        player: &Player,
-        entity_manager: &EntityManager,
-    ) {
+    fn render_debug_info(&mut self, world: &World, player: &Player) {
         self.canvas.set_draw_color(Color::RGB(255, 255, 255));
         for y in 0..world.height() {
             for x in 0..world.width() {
@@ -343,7 +322,7 @@ impl<'a> Renderer<'a> {
             3,
         ));
         self.canvas.set_draw_color(Color::RGB(0, 255, 0));
-        for entity in entity_manager.get_entities() {
+        for entity in world.get_entities() {
             let _ = self.canvas.fill_rect(Rect::new(
                 (entity.position().x * 3.0) as i32,
                 (entity.position().y * 3.0) as i32,

@@ -1,6 +1,6 @@
 use nalgebra::{Rotation2, Vector2};
 
-use crate::entity_manager::Entity;
+use crate::{entity_manager::Entity, world::World};
 
 pub struct Player {
     position: Vector2<f32>,
@@ -59,21 +59,21 @@ impl Default for Player {
 
 impl Entity for Player {
     fn position(&self) -> Vector2<f32> {
-    	self.position
+        self.position
     }
 
     fn set_position(&mut self, pos: Vector2<f32>) {
         self.position = pos;
     }
 
-    fn update(&mut self, entities: &mut crate::entity_manager::EntityManager, delta_time: f32) {
-	   	self.velocity += self.acceleration * delta_time;
-	    self.position += self.velocity * delta_time;
-	    self.velocity *= 0.8; // Friction
-	    self.acceleration = Vector2::new(0.0, 0.0);
+    fn update(&mut self, entities: &mut World, delta_time: f32) {
+        self.velocity += self.acceleration * delta_time;
+        self.position += self.velocity * delta_time;
+        self.velocity *= 0.8; // Friction
+        self.acceleration = Vector2::new(0.0, 0.0);
     }
 
     fn sprite_id(&self) -> Option<u8> {
-    	None
+        None
     }
 }

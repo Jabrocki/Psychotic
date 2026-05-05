@@ -1,10 +1,21 @@
+use std::mem::transmute;
+
+use nalgebra::Vector2;
+
+use crate::entity_manager::{Dummy, EntityPtr};
+
 pub struct World {
     width: usize,
     height: usize,
     wall_map: Vec<Vec<u8>>,
     ceil_map: Vec<Vec<u8>>,
     floor_map: Vec<Vec<u8>>,
+    entities: Vec<EntityPtr>,
+    stage_added: Vec<EntityPtr>,
+    stage_removed: Vec<entity_id>,
 }
+
+pub type entity_id = u32;
 
 impl World {
     pub fn new(wall_map: Vec<Vec<u8>>, ceil_map: Vec<Vec<u8>>, floor_map: Vec<Vec<u8>>) -> Self {
@@ -16,6 +27,9 @@ impl World {
             wall_map,
             ceil_map,
             floor_map,
+            entities: Vec::new(),
+            stage_added: Vec::new(),
+            stage_removed: Vec::new(),
         }
     }
 
@@ -49,5 +63,59 @@ impl World {
 
     pub fn height(&self) -> usize {
         self.height
+    }
+}
+
+// Wordl impl for Entities
+impl World {
+    // entities should not call this
+    pub fn add_entity_dummy(&mut self, position: Vector2<f32>, sprite_id: u8) {
+        self.entities
+            .push(EntityPtr::new::<Dummy>(Dummy::new(position, sprite_id)));
+    }
+
+    pub fn stage_add_entity(&mut self, entity: EntityPtr) {
+        self.stage_added.push(entity);
+    }
+
+    pub fn force_add_entity(&mut self, entity: EntityPtr) {
+        self.entities.push(entity);
+    }
+
+    pub fn get_entities(&self) -> &Vec<EntityPtr> {
+        &self.entities
+    }
+
+    pub fn remove_entity(&mut self, id: entity_id) {
+        self.stage_removed.push(id);
+    }
+
+    pub fn update(&mut self, delta_time: f32) {
+        // remove all entities to be removed
+        let staged_destroy = self
+            .entities
+            .iter()
+            .filter(|&ent| self.stage_removed.contains(&ent.id()));
+        for &ent in staged_destroy {
+            let mut e2 = ent;
+            e2.destroy();
+        }
+
+        self.entities
+            .retain(|&ent| !self.stage_removed.contains(&ent.id()));
+        self.stage_removed.clear();
+
+        // add entities to be added
+        for &ent in &self.stage_added {
+            self.entities.push(ent);
+        }
+        self.stage_added.clear();
+
+        let self2 = self as *mut Self;
+        let self2: &mut Self = unsafe { transmute(self2) }; // ignore guarantees about two mutable refs
+
+        for ent in &mut self.entities {
+            ent.update(self2, delta_time);
+        }
     }
 }
