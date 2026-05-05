@@ -4,7 +4,7 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entity_manager::EntityPtr, event_handler::EventHandler, player::Player, renderer::Renderer,
+    entities::EntityPtr, event_handler::EventHandler, player::Player, renderer::Renderer,
     texture_manager::TextureManager, world::World,
 };
 
@@ -24,7 +24,7 @@ impl<'a> Game<'a> {
         event_pump: sdl2::EventPump,
         texture_creator: &'a TextureCreator<WindowContext>,
     ) -> Self {
-        // Example 256 x 256 world
+        // Example world
         let wall_map = vec![
             vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],

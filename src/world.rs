@@ -1,8 +1,6 @@
-use std::mem::transmute;
-
 use nalgebra::Vector2;
 
-use crate::entity_manager::{Dummy, EntityPtr};
+use crate::entities::{Dummy, EntityPtr};
 
 pub struct World {
     width: usize,
@@ -112,10 +110,16 @@ impl World {
         self.stage_added.clear();
 
         let self2 = self as *mut Self;
-        let self2: &mut Self = unsafe { transmute(self2) }; // ignore guarantees about two mutable refs
+        let self2: &mut Self = unsafe { &mut *self2 }; // ignore guarantees about two mutable refs
 
         for ent in &mut self.entities {
             ent.update(self2, delta_time);
         }
+    }
+
+    pub fn wall_collsion(&self, pos: Vector2<f32>) -> bool {
+        let x = pos.x as usize;
+        let y = pos.y as usize;
+        self.get_wall_tile(x, y) != 0
     }
 }

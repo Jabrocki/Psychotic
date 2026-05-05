@@ -1,6 +1,6 @@
 use nalgebra::{Rotation2, Vector2};
 
-use crate::{entity_manager::Entity, world::World};
+use crate::{entities::Entity, world::World};
 
 pub struct Player {
     position: Vector2<f32>,
@@ -66,10 +66,16 @@ impl Entity for Player {
         self.position = pos;
     }
 
-    fn update(&mut self, entities: &mut World, delta_time: f32) {
+    fn update(&mut self, world: &mut World, delta_time: f32) {
         self.velocity += self.acceleration * delta_time;
-        self.position += self.velocity * delta_time;
-        self.velocity *= 0.8; // Friction
+        let new_position = self.position + self.velocity * delta_time;
+        if !world.wall_collsion(new_position) {
+            self.position = new_position;
+            self.velocity *= 0.8; // Friction
+        } else {
+            self.velocity = Vector2::new(0.0, 0.0);
+        }
+
         self.acceleration = Vector2::new(0.0, 0.0);
     }
 

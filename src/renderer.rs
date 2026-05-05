@@ -6,9 +6,7 @@ use sdl2::{
     video::{Window, WindowContext},
 };
 
-use crate::{
-    entity_manager::EntityPtr, player::Player, texture_manager::TextureManager, world::World,
-};
+use crate::{entities::EntityPtr, player::Player, texture_manager::TextureManager, world::World};
 
 pub struct Renderer<'a> {
     canvas: Canvas<Window>,
