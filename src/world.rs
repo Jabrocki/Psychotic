@@ -117,9 +117,15 @@ impl World {
         }
     }
 
-    pub fn wall_collsion(&self, pos: Vector2<f32>) -> bool {
-        let x = pos.x as usize;
-        let y = pos.y as usize;
-        self.get_wall_tile(x, y) != 0
+    pub fn wall_collsion(&self, pos: Vector2<f32>, hit_rect: Vector2<f32>) -> bool {
+        let left = (pos.x - hit_rect.x) as usize;
+        let right = (pos.x + hit_rect.x) as usize;
+        let top = (pos.y - hit_rect.y) as usize;
+        let bottom = (pos.y + hit_rect.y) as usize;
+
+        self.get_wall_tile(left, top) != 0
+            || self.get_wall_tile(right, top) != 0
+            || self.get_wall_tile(left, bottom) != 0
+            || self.get_wall_tile(right, bottom) != 0
     }
 }
