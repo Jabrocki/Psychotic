@@ -1,16 +1,14 @@
-use std::collections::{BinaryHeap, HashMap, HashSet};
-
+use crate::level::room::Room;
 use nalgebra::Vector2;
 use rand::RngExt;
 
-use std::cmp::Ordering;
-
-use crate::level::Room;
-
+// Helper structk instead of tuple - makes it more readable
 pub struct RoomData {
     room: Room,
     count: usize,
 }
+
+static MAX_ROOM_ITER: i32 = 1000;
 
 pub struct Level {
     width: usize,
@@ -41,28 +39,49 @@ impl Level {
     fn place_rooms(&mut self, room_data: Vec<RoomData>) {
         // Function to place rooms in the level
         for room_record in room_data {
-            self.place_single_room(room_record);
+            self.place_single_room_record(room_record);
         }
     }
 
-    fn place_single_room(&mut self, mut room_record: RoomData) {
+    fn place_single_room_record(&mut self, room_record: RoomData) {
         // Function to place a single room in the level
         let mut rng = rand::rng();
         for _ in 0..room_record.count {
-            let x = rng.random_range(0..self.width - room_record.room.width);
-            let y = rng.random_range(0..self.height - room_record.room.height);
-            // Check if the room can be placed at (x, y)
-            if self.can_place_room(&room_record.room, x, y) {
-                room_record = self.place_room_on_maps(room_record, x, y);
+            let mut room_placed = false;
+            for _ in 0..MAX_ROOM_ITER {
+                let x = rng.random_range(0..self.width - room_record.room.get_width());
+                let y = rng.random_range(0..self.height - room_record.room.get_height());
+                // Check if the room can be placed at (x, y)
+                if self.can_place_room(&room_record.room, x, y) {
+                    self.place_room_on_maps(&room_record.room, x, y);
+                    room_placed = true;
+                    break;
+                }
+            }
+
+            if !room_placed {
+                panic!("Can't be placed!!")
             }
         }
     }
 
     fn can_place_room(&self, room: &Room, x: usize, y: usize) -> bool {
-        // Function to check if a room can be placed at (x, y)
-        for i in 0..room.height {
-            for j in 0..room.width {
-                if self.wall_map[y + i][x + j] != -1 {
+        let height = room.get_height() as isize;
+        let width = room.get_width() as isize;
+        let y = y as isize;
+        let x = x as isize;
+        for i in -1..=height {
+            for j in -1..=width {
+                let ny = y + i;
+                let nx = x + j;
+                if ny < 0
+                    || nx < 0
+                    || ny >= self.wall_map.len() as isize
+                    || nx >= self.wall_map[0].len() as isize
+                {
+                    return false;
+                }
+                if self.wall_map[ny as usize][nx as usize] != -1 {
                     return false; // The space is not empty
                 }
             }
@@ -70,20 +89,19 @@ impl Level {
         true
     }
 
-    fn place_room_on_maps(&mut self, room_record: RoomData, x: usize, y: usize) -> RoomData {
+    fn place_room_on_maps(&mut self, room: &Room, x: usize, y: usize) {
         // Function to place a room on the wall, ceil and floor maps
-        for i in 0..room_record.room.height {
-            for j in 0..room_record.room.width {
-                self.wall_map[y + i][x + j] = room_record.room.wall_map[i][j];
-                self.ceil_map[y + i][x + j] = room_record.room.ceil_map[i][j];
-                self.floor_map[y + i][x + j] = room_record.room.floor_map[i][j];
+        for i in 0..room.get_height() {
+            for j in 0..room.get_width() {
+                self.wall_map[y + i][x + j] = room.get_wall_map()[i][j];
+                self.ceil_map[y + i][x + j] = room.get_ceil_map()[i][j];
+                self.floor_map[y + i][x + j] = room.get_floor_map()[i][j];
             }
         }
-        self.rooms
-            .push((room_record.room.clone(), Vector2::new(x, y)));
-        room_record
+        self.rooms.push((room.clone(), Vector2::new(x, y)));
     }
 
+    // Last step was split into files due
     fn connect_rooms(&mut self) {
         // Function to connect rooms with corridors
         let edges = self.generate_edge_list();
@@ -91,99 +109,202 @@ impl Level {
         self.connect_corridors(tree_edges);
     }
 
-    fn connect_corridors(&mut self, tree_edges: Vec<Edge>) {
-        // A* algorithm to connect rooms with corridors
-        // You shouldn't like to create corridors that are too long and have many intersections
-        for edge in tree_edges {
-            self.create_corridor(edge.from, edge.to);
-        }
+    // Getters
+    pub fn get_width(&self) -> usize {
+        self.width
     }
 
-    fn create_corridor(&mut self, from: Vector2<usize>, to: Vector2<usize>) {
-        // Function to create a corridor between two points
-        let mut priority_queue = BinaryHeap::new(); // This is max-heap
-        let mut visited: HashSet<Vector2<usize>> = HashSet::new();
-        let mut parent_map: HashMap<Vector2<usize>, Vector2<usize>> = HashMap::new();
-        let start = QueueNode {
-            position: from,
-            cost: 0,
-            heuristic: (to.cast::<f32>() - from.cast::<f32>()).norm() as i32,
+    pub fn get_height(&self) -> usize {
+        self.height
+    }
+
+    pub fn get_wall_map(&self) -> &Vec<Vec<i16>> {
+        &self.wall_map
+    }
+
+    pub fn get_wall_tile(&self, x: isize, y: isize) -> i16 {
+        if x < 0
+            || y < 0
+            || y as usize >= self.wall_map.len()
+            || x as usize >= self.wall_map[0].len()
+        {
+            return -1; // Out of bounds
+        }
+        self.wall_map[y as usize][x as usize]
+    }
+
+    pub fn get_ceil_map(&self) -> &Vec<Vec<i16>> {
+        &self.ceil_map
+    }
+
+    pub fn get_floor_map(&self) -> &Vec<Vec<i16>> {
+        &self.floor_map
+    }
+
+    pub fn get_rooms(&self) -> &Vec<(Room, Vector2<usize>)> {
+        &self.rooms
+    }
+
+    // Setters
+    pub fn set_wall_map_tile(&mut self, x: usize, y: usize, value: i16) {
+        self.wall_map[y][x] = value;
+    }
+
+    pub fn set_ceil_map_tile(&mut self, x: usize, y: usize, value: i16) {
+        self.ceil_map[y][x] = value;
+    }
+
+    pub fn set_floor_map_tile(&mut self, x: usize, y: usize, value: i16) {
+        self.floor_map[y][x] = value;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_place_single_room_record() {
+        let room = Room::from_file("rooms/small_room.json");
+        let room_record = RoomData { room, count: 2 };
+
+        let result = std::panic::catch_unwind(|| {
+            let mut level = Level::new(16, 16);
+            level.place_single_room_record(room_record);
+            level
+        });
+
+        assert!(result.is_ok());
+
+        let Some(level) = result.ok() else {
+            panic!("Result is empty");
         };
-        priority_queue.push(start);
-        parent_map.insert(from, from);
-        visited.insert(from);
+        let width = level.get_width();
+        let height = level.get_height();
+        let mut count_doors = 0;
+        let mut count_walls = 0;
+        let mut count_air = 0;
 
-        while let Some(current_node) = priority_queue.pop() {
-            if current_node.position == to {
-                self.build_corridor(parent_map, from, to);
-                break;
-            }
-
-            let neighbors = [
-                Vector2::new(current_node.position.x + 1, current_node.position.y),
-                Vector2::new(current_node.position.x - 1, current_node.position.y),
-                Vector2::new(current_node.position.x, current_node.position.y + 1),
-                Vector2::new(current_node.position.x, current_node.position.y - 1),
-            ];
-
-            for neighbor in neighbors {
-                // Check is if is in the map
-                if neighbor.x >= self.width || neighbor.y >= self.height {
-                    continue;
+        for x in 0..width {
+            for y in 0..height {
+                let tile = level.get_wall_tile(x as isize, y as isize);
+                if tile == -2 {
+                    count_doors += 1;
                 }
 
-                if visited.contains(&neighbor) || self.wall_map[neighbor.y][neighbor.x] != -1 {
-                    continue; // Skip visited or non-empty tiles
+                if tile > 0 {
+                    count_walls += 1;
                 }
 
-                // Skip those tiles that are neighbouring to visited
+                if tile == 0 {
+                    count_air += 1;
+                }
             }
         }
+
+        assert!(count_doors == 8);
+        assert!(count_walls == 8);
+        assert!(count_air == 2);
     }
 
-    fn build_corridor(
-        &mut self,
-        parent_map: HashMap<Vector2<usize>, Vector2<usize>>,
-        from: Vector2<usize>,
-        to: Vector2<usize>,
-    ) {
-        // Function to build a corridor based on the parent map
-        let mut current_position = to;
-        while current_position != from {
-            self.wall_map[current_position.y][current_position.x] = 0; // Mark as air
-            current_position = parent_map[&current_position];
+    #[test]
+    fn test_place_rooms() {
+        let small_room = Room::from_file("rooms/small_room.json");
+        let small_room_walls = small_room
+            .get_wall_map()
+            .iter()
+            .flatten()
+            .filter(|&&tile| tile > 0)
+            .count();
+        let small_room_doors = small_room
+            .get_wall_map()
+            .iter()
+            .flatten()
+            .filter(|&&tile| tile == -2)
+            .count();
+        let small_room_air = small_room
+            .get_wall_map()
+            .iter()
+            .flatten()
+            .filter(|&&tile| tile == 0)
+            .count();
+
+        let medium_room = Room::from_file("rooms/medium_room.json");
+
+        let medium_room_walls = medium_room
+            .get_wall_map()
+            .iter()
+            .flatten()
+            .filter(|&&tile| tile > 0)
+            .count();
+
+        let medium_room_doors = medium_room
+            .get_wall_map()
+            .iter()
+            .flatten()
+            .filter(|&&tile| tile == -2)
+            .count();
+
+        let medium_room_air = medium_room
+            .get_wall_map()
+            .iter()
+            .flatten()
+            .filter(|&&tile| tile == 0)
+            .count();
+
+        let room_data = vec![
+            RoomData {
+                room: small_room,
+                count: 2,
+            },
+            RoomData {
+                room: medium_room,
+                count: 2,
+            },
+        ];
+
+        let result = std::panic::catch_unwind(|| {
+            let mut level = Level::new(15, 15);
+            level.place_rooms(room_data);
+            level
+        });
+
+        assert!(result.is_ok());
+
+        let Some(level) = result.ok() else {
+            panic!("Result is empty");
+        };
+
+        let width = level.get_width();
+        let height = level.get_height();
+        let mut count_doors = 0;
+        let mut count_walls = 0;
+        let mut count_air = 0;
+
+        for x in 0..width {
+            for y in 0..height {
+                let tile = level.get_wall_tile(x as isize, y as isize);
+
+                if tile == -2 {
+                    count_doors += 1;
+                }
+
+                if tile > 0 {
+                    count_walls += 1;
+                }
+
+                if tile == 0 {
+                    count_air += 1;
+                }
+            }
         }
-    }
-}
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-struct QueueNode {
-    position: Vector2<usize>,
-    cost: i32,
-    heuristic: i32,
-}
+        assert!(count_doors == 2 * (small_room_doors + medium_room_doors));
+        assert!(count_walls == 2 * (small_room_walls + medium_room_walls));
+        assert!(count_air == 2 * (small_room_air + medium_room_air));
 
-impl QueueNode {
-    fn priority(&self) -> i32 {
-        -self.cost - self.heuristic
-    }
-}
-
-// 1. PartialOrd is required by Ord
-impl PartialOrd for QueueNode {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-// 2. Ord implementation
-impl Ord for QueueNode {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // We use 'other.cmp(self)' instead of 'self.cmp(other)' to
-        // flip the ordering, turning the Max-Heap into a Min-Heap.
-        other
-            .priority()
-            .partial_cmp(&self.priority())
-            .unwrap_or(Ordering::Equal)
+        for walls in level.get_wall_map() {
+            println!("{:?}", walls);
+        }
     }
 }

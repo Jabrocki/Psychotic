@@ -8,8 +8,8 @@ pub struct Room {
     width: usize,
     height: usize,
     wall_map: Vec<Vec<i16>>,
-    ceil_map: Vec<Vec<u16>>,
-    floor_map: Vec<Vec<u16>>,
+    ceil_map: Vec<Vec<i16>>,
+    floor_map: Vec<Vec<i16>>,
 }
 
 impl Room {
@@ -86,11 +86,11 @@ impl Room {
         &self.wall_map
     }
 
-    pub fn get_ceil_map(&self) -> &Vec<Vec<u16>> {
+    pub fn get_ceil_map(&self) -> &Vec<Vec<i16>> {
         &self.ceil_map
     }
 
-    pub fn get_floor_map(&self) -> &Vec<Vec<u16>> {
+    pub fn get_floor_map(&self) -> &Vec<Vec<i16>> {
         &self.floor_map
     }
 

@@ -1,13 +1,8 @@
+use std::collections::{HashMap, HashSet};
+
 use nalgebra::Vector2;
 
-use crate::level::Level;
-
-#[derive(Clone)]
-pub struct Edge {
-    from: Vector2<usize>,
-    to: Vector2<usize>,
-    weight: f32,
-}
+use crate::level::{edge::Edge, level_class::Level};
 
 pub struct UnionFind {
     parent: Vector2<usize>,
@@ -19,29 +14,23 @@ impl Level {
         let mut edges = Vec::new();
         let mut nodes: Vec<Vector2<usize>> = Vec::new();
 
-        for (room, left_top) in &self.rooms {
+        for (room, left_top) in self.get_rooms() {
             let room_nodes: Vec<Vector2<usize>> = room
-                .door_positions
+                .get_door_positions()
                 .iter()
                 .map(|door_pos| *left_top + *door_pos)
                 .collect();
 
             for room_node in room_nodes.iter().copied() {
                 for other_node in nodes.iter().copied() {
-                    let weight = (other_node.cast::<f32>() - room_node.cast::<f32>()).norm();
-
-                    edges.push(Edge {
-                        from: room_node,
-                        to: other_node,
-                        weight,
-                    });
+                    edges.push(Edge::new(other_node, room_node));
                 }
             }
 
             nodes.extend(room_nodes);
         }
 
-        edges.sort_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap());
+        edges.sort_by(|a, b| a.get_weight().partial_cmp(&b.get_weight()).unwrap());
         edges
     }
 
@@ -61,8 +50,8 @@ impl Level {
         }
 
         for edge in edges {
-            let from_parent = self.find(&union_find_map, edge.from);
-            let to_parent = self.find(&union_find_map, edge.to);
+            let from_parent = self.find(&union_find_map, edge.get_from());
+            let to_parent = self.find(&union_find_map, edge.get_to());
             if from_parent != to_parent {
                 tree_edges.push(edge.clone());
                 self.union(&mut union_find_map, from_parent, to_parent);
@@ -108,8 +97,8 @@ impl Level {
     fn get_vertices(&self, edges: &Vec<Edge>) -> HashSet<Vector2<usize>> {
         let mut vertices = HashSet::new();
         for edge in edges {
-            vertices.insert(edge.from);
-            vertices.insert(edge.to);
+            vertices.insert(edge.get_from());
+            vertices.insert(edge.get_to());
         }
         vertices
     }
