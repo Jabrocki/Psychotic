@@ -15,6 +15,14 @@ pub struct World {
 
 pub type entity_id = u32;
 
+unsafe impl Send for World {
+
+}
+
+unsafe impl Sync for World {
+
+}
+
 impl World {
     pub fn new(wall_map: Vec<Vec<u8>>, ceil_map: Vec<Vec<u8>>, floor_map: Vec<Vec<u8>>) -> Self {
         let height = wall_map.len();
