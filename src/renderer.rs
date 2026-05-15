@@ -207,6 +207,8 @@ impl<'a> Renderer<'a> {
 	        let screen_buffer: &mut Vec<u32> = unsafe { transmute(&mut self.screen_buffer) };
 			let z_buffer: &mut Vec<f32> = unsafe { transmute(&mut self.z_buffer) };
 
+			let prog_manager: &PixelProgManager = unsafe { transmute(&self.prog_manager) };
+
         	let joined = thread::spawn(move || {
 	            for x_s in (start)..((start + chunk_size).min(window_width)) {
 	                let camera_x = 2.0 * x_s as f32 / window_width as f32 - 1.0;
@@ -271,6 +273,8 @@ impl<'a> Renderer<'a> {
 	                };
 	                wall_x -= wall_x.floor();
 
+					let prog_t = prog_manager.dispatch_program(tile_id);
+
 	                let mut tex_x = (wall_x * wall_tex.width as f32) as u32;
 	                if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
 	                    tex_x = wall_tex.width - 1 - (tex_x % wall_tex.width);
@@ -285,7 +289,13 @@ impl<'a> Renderer<'a> {
 	                    let tex_y = (tex_pos as u32) % wall_tex.height;
 	                    tex_pos += step_tex;
 
-	                    let mut color = wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize];
+	                    let mut color = if prog_t.is_none() {wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize]} else {
+							prog_t.unwrap().color(
+                                prog_manager.pipeline_state(),
+                                tex_y as u32,
+                                tex_x as u32,
+                            )
+						};
 	                    if side == 1 {
 	                        color = (color & 0xFEFEFEFE) >> 1 | 0xFF000000;
 	                    }
@@ -356,7 +366,6 @@ impl<'a> Renderer<'a> {
                 continue;
             }
             let s_t = sprite_tex.unwrap();
-            let prog_t = self.prog_manager.dispatch_program(sprite_id);
             for stripe in start_x..stop_x {
                 let tex_x = ((stripe - (sprite_screen_x - sprite_width / 2)) * s_t.width as i32)
                     / sprite_width;

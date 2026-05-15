@@ -9,3 +9,4 @@ pub mod pixel_prog;
 pub mod world;
 
 pub mod level;
+pub mod pixel;
