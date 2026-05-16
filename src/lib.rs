@@ -10,3 +10,4 @@ pub mod world;
 
 pub mod level;
 pub mod pixel;
+pub mod image;
