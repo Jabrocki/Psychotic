@@ -66,6 +66,7 @@ impl<T> Index<(usize, usize)> for BufferedImage<T> where T: Texel{
 
 //
 
+#[derive(Clone, Copy)]
 pub struct Color4f(pub f32, pub f32, pub f32, pub f32);
 
 impl Color4f {
@@ -76,6 +77,10 @@ impl Color4f {
 		let a_c = (self.3*255.) as u32;
 
 		r_c | g_c << 8 | b_c << 16 | a_c << 24
+    }
+
+    pub fn fill(v: f32) -> Self{
+   		Color4f(v, v, v, v)
     }
 }
 
@@ -121,4 +126,11 @@ impl Default for Color4f {
 
 impl Texel for Color4f{
 
+}
+
+// utils
+
+pub fn clamp(rgba: Color4f, min_val: f32, max_val: f32) -> Color4f{
+	let Color4f(r, g, b, a) = rgba;
+	Color4f(r.max(min_val).min(max_val), g.max(min_val).min(max_val), b.max(min_val).min(max_val), a.max(min_val).min(max_val))
 }
