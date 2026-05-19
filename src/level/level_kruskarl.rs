@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use nalgebra::Vector2;
 
 use crate::level::{edge::Edge, level_class::Level};
-
+/*
 pub struct UnionFind {
     parent: Vector2<usize>,
     rank: i8,
@@ -103,3 +103,45 @@ impl Level {
         vertices
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::level::level_class::RoomData;
+    use crate::level::room::RoomFile;
+
+    use super::*;
+
+    #[test]
+    fn test_generate_edge_list() {
+        let small_room = RoomFile::from_file("rooms/small_room.json");
+        let small_count_doors = small_room.get_door_positions().len();
+
+        let small_room_record = RoomData {
+            room: small_room,
+            count: 2,
+        };
+        let medium_room = RoomFile::from_file("rooms/medium_room.json");
+        let medium_count_doors = medium_room.get_door_positions().len();
+
+        let medium_room_record = RoomData {
+            room: medium_room,
+            count: 2,
+        };
+
+        let room_records = vec![small_room_record, medium_room_record];
+        let mut level = Level::new(100, 100);
+        level.place_rooms(room_records);
+        assert_eq!(level.get_rooms().len(), 4);
+
+        let edges = level.generate_edge_list();
+        let expected_edges = medium_count_doors * medium_count_doors
+            + 2 * medium_count_doors * small_count_doors
+            + (2 * medium_count_doors + small_count_doors) * small_count_doors;
+
+        assert_eq!(edges.len(), expected_edges);
+    }
+
+    #[test]
+    fn test_kruskarl() {}
+}
+*/

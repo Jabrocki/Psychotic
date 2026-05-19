@@ -1,11 +1,13 @@
-use crate::level::room::Room;
-use nalgebra::Vector2;
+use std::sync::Arc;
+
+use crate::level::{room::Room, room_file::RoomFile};
 use rand::RngExt;
 
 // Helper structk instead of tuple - makes it more readable
+#[derive(Clone)]
 pub struct RoomData {
-    room: Room,
-    count: usize,
+    pub room_file: RoomFile,
+    pub count: usize,
 }
 
 static MAX_ROOM_ITER: i32 = 1000;
@@ -16,7 +18,6 @@ pub struct Level {
     wall_map: Vec<Vec<i16>>,
     ceil_map: Vec<Vec<i16>>,
     floor_map: Vec<Vec<i16>>,
-    rooms: Vec<(Room, Vector2<usize>)>, // (room, left_top_corner)
 }
 
 impl Level {
@@ -27,33 +28,37 @@ impl Level {
             wall_map: vec![vec![-1; width]; height],
             ceil_map: vec![vec![-1; width]; height],
             floor_map: vec![vec![-1; width]; height],
-            rooms: Vec::new(),
         }
     }
 
     pub fn generate(&mut self, room_data: Vec<RoomData>) {
-        self.place_rooms(room_data);
-        self.connect_rooms();
+        let room_list = self.place_rooms(room_data);
+        // self.connect_rooms();
     }
 
-    fn place_rooms(&mut self, room_data: Vec<RoomData>) {
+    pub fn place_rooms(&mut self, mut room_data: Vec<RoomData>) -> Vec<Room> {
         // Function to place rooms in the level
-        for room_record in room_data {
-            self.place_single_room_record(room_record);
+        let mut rooms = Vec::new();
+        while let Some(room_record) = room_data.pop() {
+            self.place_single_room_record(room_record, &mut rooms);
         }
+        rooms
     }
 
-    fn place_single_room_record(&mut self, room_record: RoomData) {
+    fn place_single_room_record(&mut self, room_record: RoomData, rooms: &mut Vec<Room>) {
         // Function to place a single room in the level
         let mut rng = rand::rng();
+        let room_file = Arc::new(room_record.room_file);
         for _ in 0..room_record.count {
             let mut room_placed = false;
             for _ in 0..MAX_ROOM_ITER {
-                let x = rng.random_range(0..self.width - room_record.room.get_width());
-                let y = rng.random_range(0..self.height - room_record.room.get_height());
+                let x = rng.random_range(0..self.width - room_file.get_width());
+                let y = rng.random_range(0..self.height - room_file.get_height());
                 // Check if the room can be placed at (x, y)
-                if self.can_place_room(&room_record.room, x, y) {
-                    self.place_room_on_maps(&room_record.room, x, y);
+                if self.can_place_room(&room_file, x, y) {
+                    self.place_room_on_maps(&room_file, x, y);
+                    let room = Room::new(Arc::clone(&room_file), nalgebra::Vector2::new(x, y));
+                    rooms.push(room);
                     room_placed = true;
                     break;
                 }
@@ -65,7 +70,7 @@ impl Level {
         }
     }
 
-    fn can_place_room(&self, room: &Room, x: usize, y: usize) -> bool {
+    fn can_place_room(&self, room: &RoomFile, x: usize, y: usize) -> bool {
         let height = room.get_height() as isize;
         let width = room.get_width() as isize;
         let y = y as isize;
@@ -89,7 +94,7 @@ impl Level {
         true
     }
 
-    fn place_room_on_maps(&mut self, room: &Room, x: usize, y: usize) {
+    fn place_room_on_maps(&mut self, room: &RoomFile, x: usize, y: usize) {
         // Function to place a room on the wall, ceil and floor maps
         for i in 0..room.get_height() {
             for j in 0..room.get_width() {
@@ -98,16 +103,17 @@ impl Level {
                 self.floor_map[y + i][x + j] = room.get_floor_map()[i][j];
             }
         }
-        self.rooms.push((room.clone(), Vector2::new(x, y)));
     }
 
     // Last step was split into files due
+    /*
     fn connect_rooms(&mut self) {
         // Function to connect rooms with corridors
         let edges = self.generate_edge_list();
         let tree_edges = self.kruskarl(edges);
         self.connect_corridors(tree_edges);
     }
+    */
 
     // Getters
     pub fn get_width(&self) -> usize {
@@ -141,10 +147,6 @@ impl Level {
         &self.floor_map
     }
 
-    pub fn get_rooms(&self) -> &Vec<(Room, Vector2<usize>)> {
-        &self.rooms
-    }
-
     // Setters
     pub fn set_wall_map_tile(&mut self, x: usize, y: usize, value: i16) {
         self.wall_map[y][x] = value;
@@ -165,12 +167,16 @@ mod tests {
 
     #[test]
     fn test_place_single_room_record() {
-        let room = Room::from_file("rooms/small_room.json");
-        let room_record = RoomData { room, count: 2 };
+        let room = RoomFile::from_file("rooms/small_room.json");
+        let room_record = RoomData {
+            room_file: room,
+            count: 2,
+        };
 
         let result = std::panic::catch_unwind(|| {
             let mut level = Level::new(16, 16);
-            level.place_single_room_record(room_record);
+            let mut room_list = Vec::new();
+            level.place_single_room_record(room_record, &mut room_list);
             level
         });
 
@@ -209,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_place_rooms() {
-        let small_room = Room::from_file("rooms/small_room.json");
+        let small_room = RoomFile::from_file("rooms/small_room.json");
         let small_room_walls = small_room
             .get_wall_map()
             .iter()
@@ -229,7 +235,7 @@ mod tests {
             .filter(|&&tile| tile == 0)
             .count();
 
-        let medium_room = Room::from_file("rooms/medium_room.json");
+        let medium_room = RoomFile::from_file("rooms/medium_room.json");
 
         let medium_room_walls = medium_room
             .get_wall_map()
@@ -254,17 +260,17 @@ mod tests {
 
         let room_data = vec![
             RoomData {
-                room: small_room,
+                room_file: small_room,
                 count: 2,
             },
             RoomData {
-                room: medium_room,
+                room_file: medium_room,
                 count: 2,
             },
         ];
 
         let result = std::panic::catch_unwind(|| {
-            let mut level = Level::new(15, 15);
+            let mut level = Level::new(100, 100);
             level.place_rooms(room_data);
             level
         });

@@ -5,6 +5,7 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 use crate::level::edge::Edge;
 use crate::level::level_class::Level;
 
+/*
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct QueueNode {
     position: Vector2<usize>,
@@ -103,3 +104,4 @@ impl Level {
         }
     }
 }
+*/
