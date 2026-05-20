@@ -1,21 +1,23 @@
 use nalgebra::{Rotation2, Vector2};
 
-use crate::entity_manager::Entity;
+use crate::{entities::Entity, world::World};
 
 pub struct Player {
     position: Vector2<f32>,
     direction: Vector2<f32>,
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
+    hit_box: Vector2<f32>,
 }
 
 impl Player {
     pub fn new() -> Self {
         Self {
-            position: Vector2::new(1.0, 1.0),
+            position: Vector2::new(1.5, 1.5),
             direction: Vector2::new(-1.0, 0.0),
             velocity: Vector2::new(0.0, 0.0),
             acceleration: Vector2::new(0.0, 0.0),
+            hit_box: Vector2::new(0.1, 0.1),
         }
     }
 
@@ -59,21 +61,34 @@ impl Default for Player {
 
 impl Entity for Player {
     fn position(&self) -> Vector2<f32> {
-    	self.position
+        self.position
     }
 
     fn set_position(&mut self, pos: Vector2<f32>) {
         self.position = pos;
     }
 
-    fn update(&mut self, entities: &mut crate::entity_manager::EntityManager, delta_time: f32) {
-	   	self.velocity += self.acceleration * delta_time;
-	    self.position += self.velocity * delta_time;
-	    self.velocity *= 0.8; // Friction
-	    self.acceleration = Vector2::new(0.0, 0.0);
+    fn update(&mut self, world: &mut World, delta_time: f32) {
+        self.velocity += self.acceleration * delta_time;
+        let new_position_x = self.position.x + self.velocity.x * delta_time;
+        if !world.wall_collsion(Vector2::new(new_position_x, self.position.y), self.hit_box) {
+            self.position.x = new_position_x;
+            self.velocity.x *= 0.8;
+        } else {
+            self.velocity.x = 0.0;
+        }
+
+        let new_position_y = self.position.y + self.velocity.y * delta_time;
+        if !world.wall_collsion(Vector2::new(self.position.x, new_position_y), self.hit_box) {
+            self.position.y = new_position_y;
+            self.velocity.y *= 0.8;
+        } else {
+            self.velocity.y = 0.0;
+        }
+        self.acceleration = Vector2::new(0.0, 0.0);
     }
 
     fn sprite_id(&self) -> Option<u8> {
-    	None
+        None
     }
 }
