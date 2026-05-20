@@ -22,7 +22,7 @@ impl EventHandler {
                     std::process::exit(0);
                 }
                 Event::MouseMotion { xrel, .. } => {
-                    player.rotate((xrel as f32) * 0.002);
+                    player.rotate((xrel as f32) * 0.005);
                 }
                 _ => {}
             }

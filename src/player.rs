@@ -25,6 +25,10 @@ impl Player {
         self.position
     }
 
+    pub fn set_position(&mut self, pos: Vector2<f32>) {
+        self.position = pos;
+    }
+
     pub fn direction(&self) -> Vector2<f32> {
         self.direction
     }
