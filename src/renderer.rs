@@ -41,6 +41,7 @@ pub struct Renderer<'a> {
     z_buffer: Vec<f32>,
     texture: Texture<'a>,
     prog_manager: PixelProgManager,
+    render_t: f32,
 }
 
 // TODO: generalny refactoring renderera, żeby był bardziej modularny i czytelny, można podzielić
@@ -74,6 +75,7 @@ impl<'a> Renderer<'a> {
             texture,
             z_buffer: vec![0.0; window_width],
             prog_manager: PixelProgManager::new(),
+            render_t: 0.
         }
     }
 
@@ -91,6 +93,10 @@ impl<'a> Renderer<'a> {
         let _ = self.canvas.copy(&self.texture, None, None);
         self.render_debug_info(world, player);
         self.canvas.present();
+
+        self.render_t+=1.;
+
+        self.prog_manager.update(self.render_t);
     }
 
     fn render_world(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
@@ -209,6 +215,8 @@ impl<'a> Renderer<'a> {
 
 			let prog_manager: &PixelProgManager = unsafe { transmute(&self.prog_manager) };
 
+			let render_t = self.render_t;
+
         	let joined = thread::spawn(move || {
 	            for x_s in (start)..((start + chunk_size).min(window_width)) {
 	                let camera_x = 2.0 * x_s as f32 / window_width as f32 - 1.0;
@@ -294,6 +302,7 @@ impl<'a> Renderer<'a> {
                                 prog_manager.pipeline_state(),
                                 tex_y as u32,
                                 tex_x as u32,
+                                render_t,
                             )
 						};
 	                    if side == 1 {

@@ -2,7 +2,9 @@ use crate::pixel::wall_program::WallProgram;
 
 
 pub trait PixelProgram{
-	fn color(&self, state: &PipelineState, x: u32, y: u32) -> u32;
+
+	fn update(&mut self, t: f32);
+	fn color(&self, state: &PipelineState, x: u32, y: u32, t: f32) -> u32;
 }
 
 pub struct PipelineState{
@@ -35,5 +37,16 @@ impl PixelProgManager {
     	progs.push(Some(Box::new(WallProgram::new()) as Box<dyn PixelProgram + Send + Sync>));
 
         Self { programs: progs, state: PipelineState {  }}
+    }
+
+    pub fn update(&mut self, t: f32){
+    	(self.programs).iter_mut().for_each(|prog| {
+      		match prog.as_mut(){
+        		None => (),
+          		Some(prog) => {
+            		prog.update(t);
+            	}
+        	}
+     	});
     }
 }

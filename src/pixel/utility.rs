@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Rem, Sub};
+use std::{f32::consts::PI, ops::{Add, Div, Mul, Rem, Sub}};
 
 use nalgebra::{Matrix, Matrix3, Point, Vector2};
 use rand::{RngExt, SeedableRng, TryRng};
@@ -181,4 +181,9 @@ pub fn worley_noise_border(texture_size: usize, cell_amount: usize, seed: u64) -
 	}
 
 	return buffer;
+}
+
+pub fn fsin(x: f32) -> f32{
+	let x = x.rem_euclid(PI);
+	(x / PI) * (1. - (x / PI).abs()) * 4.
 }
