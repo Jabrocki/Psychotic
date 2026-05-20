@@ -3,11 +3,11 @@ use nalgebra::Vector2;
 use crate::entities::{Dummy, EntityPtr};
 
 pub struct World {
-    width: usize,
-    height: usize,
-    wall_map: Vec<Vec<u8>>,
-    ceil_map: Vec<Vec<u8>>,
-    floor_map: Vec<Vec<u8>>,
+    pub width: usize,
+    pub height: usize,
+    pub wall_map: Vec<Vec<i16>>,
+    pub ceil_map: Vec<Vec<i16>>,
+    pub floor_map: Vec<Vec<i16>>,
     entities: Vec<EntityPtr>,
     stage_added: Vec<EntityPtr>,
     stage_removed: Vec<entity_id>,
@@ -16,7 +16,7 @@ pub struct World {
 pub type entity_id = u32;
 
 impl World {
-    pub fn new(wall_map: Vec<Vec<u8>>, ceil_map: Vec<Vec<u8>>, floor_map: Vec<Vec<u8>>) -> Self {
+    pub fn new(wall_map: Vec<Vec<i16>>, ceil_map: Vec<Vec<i16>>, floor_map: Vec<Vec<i16>>) -> Self {
         let height = wall_map.len();
         let width = if height > 0 { wall_map[0].len() } else { 0 };
         Self {
@@ -31,7 +31,7 @@ impl World {
         }
     }
 
-    pub fn get_wall_tile(&self, x: usize, y: usize) -> u8 {
+    pub fn get_wall_tile(&self, x: usize, y: usize) -> i16 {
         if y < self.height && x < self.width {
             self.wall_map[y][x]
         } else {
@@ -39,7 +39,7 @@ impl World {
         }
     }
 
-    pub fn get_ceil_tile(&self, x: usize, y: usize) -> u8 {
+    pub fn get_ceil_tile(&self, x: usize, y: usize) -> i16 {
         if y < self.height && x < self.width {
             self.ceil_map[y][x]
         } else {
@@ -47,7 +47,7 @@ impl World {
         }
     }
 
-    pub fn get_floor_tile(&self, x: usize, y: usize) -> u8 {
+    pub fn get_floor_tile(&self, x: usize, y: usize) -> i16 {
         if y < self.height && x < self.width {
             self.floor_map[y][x]
         } else {

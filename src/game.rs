@@ -4,8 +4,16 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entities::EntityPtr, event_handler::EventHandler, player::Player, renderer::Renderer,
-    texture_manager::TextureManager, world::World,
+    entities::EntityPtr,
+    event_handler::EventHandler,
+    level::{
+        level_class::{Level, RoomData},
+        room_file::RoomFile,
+    },
+    player::Player,
+    renderer::Renderer,
+    texture_manager::TextureManager,
+    world::World,
 };
 
 pub struct Game<'a> {
@@ -55,7 +63,7 @@ impl<'a> Game<'a> {
         ];
 
         let mut world = World::new(wall_map, ceil_map, floor_map);
-        let player = Player::new();
+        let mut player = Player::new();
         let renderer = Renderer::new(canvas, width, height, texture_creator);
         let event_handler = EventHandler::new(event_pump);
         let mut texture_manager = TextureManager::new();
@@ -70,6 +78,44 @@ impl<'a> Game<'a> {
         texture_manager.load_static(10, "images/pillar.png");
 
         // World hardcoded for now
+        let small_room_file = RoomFile::from_file("rooms/small_room.json");
+        let medium_room_file = RoomFile::from_file("rooms/medium_room.json");
+
+        let room_data = vec![
+            RoomData {
+                room_file: small_room_file,
+                count: 150,
+            },
+            RoomData {
+                room_file: medium_room_file,
+                count: 110,
+            },
+        ];
+
+        let mut level_generator = Level::new(100, 100);
+        level_generator.generate(room_data);
+
+        world.width = level_generator.get_width();
+        world.height = level_generator.get_height();
+        world.wall_map = level_generator.wall_map;
+
+        // Find first 0 in wall_map to place player
+        let mut player_placed = false;
+        for y in 0..world.height {
+            for x in 0..world.width {
+                if world.get_wall_tile(x, y) == 0 {
+                    player.set_position(Vector2::new(x as f32 + 0.5, y as f32 + 0.5));
+                    player_placed = true;
+                    break;
+                }
+            }
+            if player_placed {
+                break;
+            }
+        }
+        world.ceil_map = level_generator.ceil_map;
+        world.floor_map = level_generator.floor_map;
+
         world.add_entity_dummy(Vector2::new(5.5, 5.5), 10);
         world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
 

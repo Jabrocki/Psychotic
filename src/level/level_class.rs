@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::level::{room::Room, room_file::RoomFile};
+use crate::level::{
+    generate_edge_list::generate_edge_list, kruskarl::kruskarl, room::Room, room_file::RoomFile,
+};
 use rand::RngExt;
 
 // Helper structk instead of tuple - makes it more readable
@@ -12,12 +14,13 @@ pub struct RoomData {
 
 static MAX_ROOM_ITER: i32 = 1000;
 
+// TODO: mayde this private
 pub struct Level {
     width: usize,
     height: usize,
-    wall_map: Vec<Vec<i16>>,
-    ceil_map: Vec<Vec<i16>>,
-    floor_map: Vec<Vec<i16>>,
+    pub wall_map: Vec<Vec<i16>>,
+    pub ceil_map: Vec<Vec<i16>>,
+    pub floor_map: Vec<Vec<i16>>,
 }
 
 impl Level {
@@ -33,9 +36,10 @@ impl Level {
 
     pub fn generate(&mut self, room_data: Vec<RoomData>) {
         let room_list = self.place_rooms(room_data);
-        // self.connect_rooms();
+        self.connect_rooms(room_list);
     }
 
+    // Pub function for unit tests - do not use it in the main code
     pub fn place_rooms(&mut self, mut room_data: Vec<RoomData>) -> Vec<Room> {
         // Function to place rooms in the level
         let mut rooms = Vec::new();
@@ -106,14 +110,12 @@ impl Level {
     }
 
     // Last step was split into files due
-    /*
-    fn connect_rooms(&mut self) {
-        // Function to connect rooms with corridors
-        let edges = self.generate_edge_list();
-        let tree_edges = self.kruskarl(edges);
-        self.connect_corridors(tree_edges);
+    fn connect_rooms(&mut self, room_list: Vec<Room>) {
+        let edges = generate_edge_list(room_list);
+        let tree_edges = kruskarl(edges);
+        self.connect_corridors(&tree_edges);
+        self.clean_up_maps();
     }
-    */
 
     // Getters
     pub fn get_width(&self) -> usize {
@@ -128,15 +130,8 @@ impl Level {
         &self.wall_map
     }
 
-    pub fn get_wall_tile(&self, x: isize, y: isize) -> i16 {
-        if x < 0
-            || y < 0
-            || y as usize >= self.wall_map.len()
-            || x as usize >= self.wall_map[0].len()
-        {
-            return -1; // Out of bounds
-        }
-        self.wall_map[y as usize][x as usize]
+    pub fn get_wall_tile(&self, x: usize, y: usize) -> i16 {
+        self.wall_map[y][x]
     }
 
     pub fn get_ceil_map(&self) -> &Vec<Vec<i16>> {
@@ -158,6 +153,30 @@ impl Level {
 
     pub fn set_floor_map_tile(&mut self, x: usize, y: usize, value: i16) {
         self.floor_map[y][x] = value;
+    }
+
+    // Clean up maps -1 -> 1 and -2 -> 0
+    fn clean_up_maps(&mut self) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                // Clean up wall map
+                if self.wall_map[y][x] == -1 {
+                    self.wall_map[y][x] = 1;
+                } else if self.wall_map[y][x] == -2 {
+                    self.wall_map[y][x] = 0;
+                }
+
+                // Clean up ceil map
+                if self.ceil_map[y][x] == -1 {
+                    self.ceil_map[y][x] = 1;
+                }
+
+                // Clean up floor map
+                if self.floor_map[y][x] == -1 {
+                    self.floor_map[y][x] = 1;
+                }
+            }
+        }
     }
 }
 
@@ -193,7 +212,7 @@ mod tests {
 
         for x in 0..width {
             for y in 0..height {
-                let tile = level.get_wall_tile(x as isize, y as isize);
+                let tile = level.get_wall_tile(x, y);
                 if tile == -2 {
                     count_doors += 1;
                 }
@@ -289,7 +308,7 @@ mod tests {
 
         for x in 0..width {
             for y in 0..height {
-                let tile = level.get_wall_tile(x as isize, y as isize);
+                let tile = level.get_wall_tile(x, y);
 
                 if tile == -2 {
                     count_doors += 1;

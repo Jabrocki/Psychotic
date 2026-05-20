@@ -101,8 +101,8 @@ impl<'a> Renderer<'a> {
                 let floor_id = world.get_floor_tile(map_x, map_y);
                 let ceil_id = world.get_ceil_tile(map_x, map_y);
 
-                let floor_tex = texture_manager.get_texture(floor_id);
-                let ceil_tex = texture_manager.get_texture(ceil_id);
+                let floor_tex = texture_manager.get_texture(floor_id as u8);
+                let ceil_tex = texture_manager.get_texture(ceil_id as u8);
 
                 if floor_tex.is_none() || ceil_tex.is_none() {
                     floor_pos += floor_step;
@@ -187,7 +187,7 @@ impl<'a> Renderer<'a> {
                 .min(self.window_height as i32 - 1);
 
             let tile_id = world.get_wall_tile(map_pos.x as usize, map_pos.y as usize);
-            let wall_tex = texture_manager.get_texture(tile_id);
+            let wall_tex = texture_manager.get_texture(tile_id as u8);
             if wall_tex.is_none() {
                 continue;
             }
