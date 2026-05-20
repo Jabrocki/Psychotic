@@ -1,3 +1,9 @@
+use std::{
+    mem::transmute,
+    sync::{Arc, Mutex},
+    thread,
+};
+
 use nalgebra::{Matrix2, Vector2};
 use sdl2::{
     pixels::{Color, PixelFormatEnum},
@@ -6,7 +12,26 @@ use sdl2::{
     video::{Window, WindowContext},
 };
 
-use crate::{entities::EntityPtr, player::Player, texture_manager::TextureManager, world::World};
+use crate::{
+    entities::EntityPtr,
+    pixel_prog::*,
+    player::Player,
+    texture_manager::{TextureManager},
+    world::World,
+};
+
+struct RenderJobWrapper {
+    texture_manager: *const TextureManager,
+    player: *const Player,
+    world: *const World,
+    screen_buffer: *mut Vec<u32>,
+}
+
+unsafe impl Send for RenderJobWrapper {}
+
+unsafe impl Sync for RenderJobWrapper {}
+
+const JOB_AMOUNT: usize = 5;
 
 pub struct Renderer<'a> {
     canvas: Canvas<Window>,
@@ -15,6 +40,7 @@ pub struct Renderer<'a> {
     screen_buffer: Vec<u32>,
     z_buffer: Vec<f32>,
     texture: Texture<'a>,
+    prog_manager: PixelProgManager,
 }
 
 // TODO: generalny refactoring renderera, żeby był bardziej modularny i czytelny, można podzielić
@@ -47,6 +73,7 @@ impl<'a> Renderer<'a> {
             screen_buffer,
             texture,
             z_buffer: vec![0.0; window_width],
+            prog_manager: PixelProgManager::new(),
         }
     }
 
@@ -88,45 +115,72 @@ impl<'a> Renderer<'a> {
         let ray_dir0 = player.direction() - plane;
         let ray_dir1 = player.direction() + plane;
 
-        for y_s in (self.window_height / 2 + 1)..self.window_height {
-            let p = (y_s - (self.window_height / 2)) as f32;
-            let row_distance = (0.5 * self.window_height as f32) / p;
+        let mut tasks: Vec<thread::JoinHandle<()>> = vec![];
 
-            let floor_step = row_distance * (ray_dir1 - ray_dir0) / self.window_width as f32;
-            let mut floor_pos = player.position() + row_distance * ray_dir0;
+        let len = self.window_height - (self.window_height / 2 + 1) + 1;
 
-            for x in 0..self.window_width {
-                let map_x = floor_pos.x as usize;
-                let map_y = floor_pos.y as usize;
-                let floor_id = world.get_floor_tile(map_x, map_y);
-                let ceil_id = world.get_ceil_tile(map_x, map_y);
+        let mut start = self.window_height / 2 + 1;
+        let chunk_size = len / JOB_AMOUNT;
 
-                let floor_tex = texture_manager.get_texture(floor_id as u8);
-                let ceil_tex = texture_manager.get_texture(ceil_id as u8);
+        for _ in 0..JOB_AMOUNT {
+            let texture_manager: &TextureManager = unsafe { transmute(texture_manager) };
+            let player: &Player = unsafe { transmute(player) };
 
-                if floor_tex.is_none() || ceil_tex.is_none() {
-                    floor_pos += floor_step;
-                    continue;
+            let world: &World = unsafe { transmute(world) };
+
+            let window_width = self.window_width;
+            let window_height = self.window_height;
+
+            let screen_buffer: &mut Vec<u32> = unsafe { transmute(&mut self.screen_buffer) };
+
+            let joined = thread::spawn(move || {
+                for y_s in (start)..((start + chunk_size).min(window_height)) {
+                    let p = (y_s - (window_height / 2)) as f32;
+                    let row_distance = (0.5 * window_height as f32) / p;
+
+                    let floor_step = row_distance * (ray_dir1 - ray_dir0) / window_width as f32;
+                    let mut floor_pos = player.position() + row_distance * ray_dir0;
+
+                    for x in 0..window_width {
+                        let map_x = floor_pos.x as usize;
+                        let map_y = floor_pos.y as usize;
+                        let floor_id = world.get_floor_tile(map_x, map_y);
+                        let ceil_id = world.get_ceil_tile(map_x, map_y);
+
+                        let floor_tex = texture_manager.get_texture(floor_id);
+                        let ceil_tex = texture_manager.get_texture(ceil_id);
+
+                        if floor_tex.is_none() || ceil_tex.is_none() {
+                            floor_pos += floor_step;
+                            continue;
+                        }
+
+                        let f_t = floor_tex.unwrap();
+                        let c_t = ceil_tex.unwrap();
+                        let tx = (f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as u32
+                            % f_t.width;
+                        let ty = (f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as u32
+                            % f_t.height;
+
+                        let f_pixel = f_t.data[(ty * f_t.width + tx) as usize];
+                        let c_pixel = c_t.data[(ty * c_t.width + tx) as usize];
+
+                        let f_shaded = (f_pixel & 0xFEFEFEFE) >> 1 | 0xFF000000;
+
+                        screen_buffer[y_s * window_width + x] = f_shaded;
+                        screen_buffer[(window_height - 1 - y_s) * window_width + x] = c_pixel;
+
+                        floor_pos += floor_step;
+                    }
                 }
+            });
 
-                let f_t = floor_tex.unwrap();
-                let c_t = ceil_tex.unwrap();
-                let tx =
-                    (f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as u32 % f_t.width;
-                let ty =
-                    (f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as u32 % f_t.height;
+            tasks.push(joined);
+            start += chunk_size;
+        }
 
-                let f_pixel = f_t.data[(ty * f_t.width + tx) as usize];
-                let c_pixel = c_t.data[(ty * c_t.width + tx) as usize];
-
-                let f_shaded = (f_pixel & 0xFEFEFEFE) >> 1 | 0xFF000000;
-
-                self.screen_buffer[y_s * self.window_width + x] = f_shaded;
-                self.screen_buffer[(self.window_height - 1 - y_s) * self.window_width + x] =
-                    c_pixel;
-
-                floor_pos += floor_step;
-            }
+        for t in tasks {
+            _ = t.join();
         }
     }
 
@@ -137,89 +191,126 @@ impl<'a> Renderer<'a> {
         plane: Vector2<f32>,
         texture_manager: &TextureManager,
     ) {
-        for x_s in 0..self.window_width {
-            let camera_x = 2.0 * x_s as f32 / self.window_width as f32 - 1.0;
-            let ray_dir = player.direction() + plane * camera_x;
+	   	let mut start = 0;
+	    let chunk_size = self.window_width / JOB_AMOUNT;
+		let mut tasks: Vec<thread::JoinHandle<()>> = vec![];
 
-            let mut map_pos = Vector2::new(player.position().x as i32, player.position().y as i32);
-            let delta_dist = Vector2::new((1.0 / ray_dir.x).abs(), (1.0 / ray_dir.y).abs());
-            let step = ray_dir.map(|c| c.signum() as i32);
+        for _ in 0..JOB_AMOUNT {
+	       	let texture_manager: &TextureManager = unsafe { transmute(texture_manager) };
+	        let player: &Player = unsafe { transmute(player) };
 
-            let mut side_dist = Vector2::new(
-                if ray_dir.x < 0.0 {
-                    (player.position().x - map_pos.x as f32) * delta_dist.x
-                } else {
-                    (map_pos.x as f32 + 1.0 - player.position().x) * delta_dist.x
-                },
-                if ray_dir.y < 0.0 {
-                    (player.position().y - map_pos.y as f32) * delta_dist.y
-                } else {
-                    (map_pos.y as f32 + 1.0 - player.position().y) * delta_dist.y
-                },
-            );
+	        let world: &World = unsafe { transmute(world) };
 
-            let mut side = 0;
-            let mut hit = false;
-            while !hit {
-                if side_dist.x < side_dist.y {
-                    side_dist.x += delta_dist.x;
-                    map_pos.x += step.x;
-                    side = 0;
-                } else {
-                    side_dist.y += delta_dist.y;
-                    map_pos.y += step.y;
-                    side = 1;
-                }
-                if world.get_wall_tile(map_pos.x as usize, map_pos.y as usize) != 0 {
-                    hit = true;
-                }
-            }
+	        let window_width = self.window_width;
+	        let window_height = self.window_height;
 
-            let perp_wall_dist = if side == 0 {
-                (side_dist.x - delta_dist.x).max(0.01)
-            } else {
-                (side_dist.y - delta_dist.y).max(0.01)
-            };
+	        let screen_buffer: &mut Vec<u32> = unsafe { transmute(&mut self.screen_buffer) };
+			let z_buffer: &mut Vec<f32> = unsafe { transmute(&mut self.z_buffer) };
 
-            let line_height = (self.window_height as f32 / perp_wall_dist) as i32;
-            let start = (-line_height / 2 + self.window_height as i32 / 2).max(0);
-            let end = (line_height / 2 + self.window_height as i32 / 2)
-                .min(self.window_height as i32 - 1);
+			let prog_manager: &PixelProgManager = unsafe { transmute(&self.prog_manager) };
 
-            let tile_id = world.get_wall_tile(map_pos.x as usize, map_pos.y as usize);
-            let wall_tex = texture_manager.get_texture(tile_id as u8);
-            if wall_tex.is_none() {
-                continue;
-            }
-            let wall_tex = wall_tex.unwrap();
-            let mut wall_x = if side == 0 {
-                player.position().y + perp_wall_dist * ray_dir.y
-            } else {
-                player.position().x + perp_wall_dist * ray_dir.x
-            };
-            wall_x -= wall_x.floor();
+        	let joined = thread::spawn(move || {
+	            for x_s in (start)..((start + chunk_size).min(window_width)) {
+	                let camera_x = 2.0 * x_s as f32 / window_width as f32 - 1.0;
+	                let ray_dir = player.direction() + plane * camera_x;
 
-            let mut tex_x = (wall_x * wall_tex.width as f32) as u32;
-            if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
-                tex_x = wall_tex.width - 1 - (tex_x % wall_tex.width);
-            }
+	                let mut map_pos =
+	                    Vector2::new(player.position().x as i32, player.position().y as i32);
+	                let delta_dist = Vector2::new((1.0 / ray_dir.x).abs(), (1.0 / ray_dir.y).abs());
+	                let step = ray_dir.map(|c| c.signum() as i32);
 
-            let step_tex = wall_tex.height as f32 / line_height as f32;
-            let mut tex_pos = (start as f32 - self.window_height as f32 / 2.0
-                + line_height as f32 / 2.0)
-                * step_tex;
+	                let mut side_dist = Vector2::new(
+	                    if ray_dir.x < 0.0 {
+	                        (player.position().x - map_pos.x as f32) * delta_dist.x
+	                    } else {
+	                        (map_pos.x as f32 + 1.0 - player.position().x) * delta_dist.x
+	                    },
+	                    if ray_dir.y < 0.0 {
+	                        (player.position().y - map_pos.y as f32) * delta_dist.y
+	                    } else {
+	                        (map_pos.y as f32 + 1.0 - player.position().y) * delta_dist.y
+	                    },
+	                );
 
-            for y in start..end {
-                let tex_y = (tex_pos as u32) % wall_tex.height;
-                tex_pos += step_tex;
+	                let mut side = 0;
+	                let mut hit = false;
+	                while !hit {
+	                    if side_dist.x < side_dist.y {
+	                        side_dist.x += delta_dist.x;
+	                        map_pos.x += step.x;
+	                        side = 0;
+	                    } else {
+	                        side_dist.y += delta_dist.y;
+	                        map_pos.y += step.y;
+	                        side = 1;
+	                    }
+	                    if world.get_wall_tile(map_pos.x as usize, map_pos.y as usize) != 0 {
+	                        hit = true;
+	                    }
+	                }
 
-                let mut color = wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize];
-                if side == 1 {
-                    color = (color & 0xFEFEFEFE) >> 1 | 0xFF000000;
-                }
-                self.screen_buffer[y as usize * self.window_width + x_s] = color;
-            }
-            self.z_buffer[x_s] = perp_wall_dist;
+	                let perp_wall_dist = if side == 0 {
+	                    (side_dist.x - delta_dist.x).max(0.01)
+	                } else {
+	                    (side_dist.y - delta_dist.y).max(0.01)
+	                };
+
+	                let line_height = (window_height as f32 / perp_wall_dist) as i32;
+	                let start = (-line_height / 2 + window_height as i32 / 2).max(0);
+	                let end = (line_height / 2 + window_height as i32 / 2)
+	                    .min(window_height as i32 - 1);
+
+	                let tile_id = world.get_wall_tile(map_pos.x as usize, map_pos.y as usize);
+	                let wall_tex = texture_manager.get_texture(tile_id);
+	                if wall_tex.is_none() {
+	                    continue;
+	                }
+	                let wall_tex = wall_tex.unwrap();
+	                let mut wall_x = if side == 0 {
+	                    player.position().y + perp_wall_dist * ray_dir.y
+	                } else {
+	                    player.position().x + perp_wall_dist * ray_dir.x
+	                };
+	                wall_x -= wall_x.floor();
+
+					let prog_t = prog_manager.dispatch_program(tile_id);
+
+	                let mut tex_x = (wall_x * wall_tex.width as f32) as u32;
+	                if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
+	                    tex_x = wall_tex.width - 1 - (tex_x % wall_tex.width);
+	                }
+
+	                let step_tex = wall_tex.height as f32 / line_height as f32;
+	                let mut tex_pos = (start as f32 - window_height as f32 / 2.0
+	                    + line_height as f32 / 2.0)
+	                    * step_tex;
+
+	                for y in start..end {
+	                    let tex_y = (tex_pos as u32) % wall_tex.height;
+	                    tex_pos += step_tex;
+
+	                    let mut color = if prog_t.is_none() {wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize]} else {
+							prog_t.unwrap().color(
+                                prog_manager.pipeline_state(),
+                                tex_y as u32,
+                                tex_x as u32,
+                            )
+						};
+	                    if side == 1 {
+	                        color = (color & 0xFEFEFEFE) >> 1 | 0xFF000000;
+	                    }
+	                    screen_buffer[y as usize * window_width + x_s] = color;
+	                }
+		            z_buffer[x_s] = perp_wall_dist;
+	            }
+         	});
+
+        	tasks.push(joined);
+            start += chunk_size;
+        }
+
+        for t in tasks{
+        	_ = t.join();
         }
     }
 
