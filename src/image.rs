@@ -51,6 +51,7 @@ impl<T> BufferedImage<T> where T: Texel{
 impl<T> IndexMut<(usize, usize)> for BufferedImage<T> where T: Texel{
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
     	let (x, y) = index;
+
    		&mut self.data[(y*self.height+x) as usize]
     }
 }
@@ -60,6 +61,8 @@ impl<T> Index<(usize, usize)> for BufferedImage<T> where T: Texel{
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
     	let (x, y) = index;
+     	//let (x, y) = (x.min(self.width-1).max(0), y.min(self.height-1).max(0));
+
     	&self.data[(y*self.height+x) as usize]
     }
 }
