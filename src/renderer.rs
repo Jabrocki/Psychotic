@@ -13,8 +13,7 @@ use sdl2::{
 };
 
 use crate::{
-    entities::EntityPtr, pixel_prog::*, player::Player, texture_manager::TextureManager,
-    world::World,
+    entities::EntityPtr, image::BufferedImage, pixel_prog::*, player::Player, texture_manager::TextureManager, world::World
 };
 
 struct RenderJobWrapper {
@@ -34,7 +33,7 @@ pub struct Renderer<'a> {
     canvas: Canvas<Window>,
     window_width: usize,
     window_height: usize,
-    screen_buffer: Vec<u32>,
+    screen_buffer: BufferedImage<u32>,
     z_buffer: Vec<f32>,
     texture: Texture<'a>,
     prog_manager: PixelProgManager,
@@ -54,7 +53,6 @@ impl<'a> Renderer<'a> {
         window_height: usize,
         texture_creator: &'a TextureCreator<WindowContext>,
     ) -> Self {
-        let screen_buffer = vec![0; window_width * window_height];
         // Initilize screen texture
         let texture = texture_creator
             .create_texture_streaming(
@@ -68,7 +66,7 @@ impl<'a> Renderer<'a> {
             canvas,
             window_width,
             window_height,
-            screen_buffer,
+            screen_buffer: BufferedImage::new(window_width, window_height),
             texture,
             z_buffer: vec![0.0; window_width],
             prog_manager: PixelProgManager::new(),
@@ -77,13 +75,13 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn render(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
-        self.screen_buffer.fill(0);
+        //self.screen_buffer.fill(0);
         self.render_world(world, player, texture_manager);
 
         self.texture
             .update(
                 None,
-                bytemuck::cast_slice(self.screen_buffer.as_slice()),
+                bytemuck::cast_slice(&self.screen_buffer.data.as_slice()),
                 self.window_width * 4,
             )
             .unwrap();
@@ -168,13 +166,13 @@ impl<'a> Renderer<'a> {
                         let fprog_t = prog_manager.dispatch_program(floor_id as u8);
                         let cprog_t = prog_manager.dispatch_program(ceil_id as u8);
 
-                        let tx = (f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as u32
+                        let tx = (f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as usize
                             % f_t.width;
-                        let ty = (f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as u32
+                        let ty = (f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as usize
                             % f_t.height;
 
                         let f_pixel = if fprog_t.is_none() {
-                        	f_t.data[(ty * f_t.width + tx) as usize]
+                        	f_t[(tx, ty)]
                         }
                         else{
 	                       	fprog_t.unwrap().color(
@@ -308,7 +306,7 @@ impl<'a> Renderer<'a> {
 
                     let prog_t = prog_manager.dispatch_program(tile_id as u8);
 
-                    let mut tex_x = (wall_x * wall_tex.width as f32) as u32;
+                    let mut tex_x = (wall_x * wall_tex.width as f32) as usize;
                     if (side == 0 && ray_dir.x > 0.0) || (side == 1 && ray_dir.y < 0.0) {
                         tex_x = wall_tex.width - 1 - (tex_x % wall_tex.width);
                     }
@@ -319,11 +317,11 @@ impl<'a> Renderer<'a> {
                         * step_tex;
 
                     for y in start..end {
-                        let tex_y = (tex_pos as u32) % wall_tex.height;
+                        let tex_y = (tex_pos as usize) % wall_tex.height;
                         tex_pos += step_tex;
 
                         let mut color = if prog_t.is_none() {
-                            wall_tex.data[(tex_y * wall_tex.width + tex_x) as usize]
+                            wall_tex[(tex_x, tex_y)]
                         } else {
                             prog_t.unwrap().color(
                                 prog_manager.pipeline_state(),
@@ -416,11 +414,10 @@ impl<'a> Renderer<'a> {
                             * s_t.height as i32;
                         let tex_y = d / sprite_height;
 
-                        let s_pixel = s_t.data[(tex_y as u32 * s_t.width + tex_x as u32) as usize];
+                        let s_pixel = s_t[(tex_x as usize, tex_y as usize)];
 
                         if (s_pixel & 0x00FFFFFF) != 0 {
-                            self.screen_buffer[y as usize * self.window_width + stripe as usize] =
-                                s_pixel | 0xFF000000;
+                            self.screen_buffer[(stripe as usize, y as usize)] = s_pixel | 0xFF000000;
                         }
                     }
                 }
