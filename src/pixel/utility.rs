@@ -1,6 +1,7 @@
 use std::{f32::consts::PI, ops::{Add, Div, Mul, Rem, Sub}};
 
 use nalgebra::{Matrix, Matrix3, Point, Vector2};
+use noise::{NoiseFn, Perlin};
 use rand::{RngExt, SeedableRng, TryRng};
 
 use crate::image::{BufferedImage, Color4f};
@@ -186,4 +187,86 @@ pub fn worley_noise_border(texture_size: usize, cell_amount: usize, seed: u64) -
 pub fn fsin(x: f32) -> f32{
 	let x = x.rem_euclid(PI);
 	(x / PI) * (1. - (x / PI).abs()) * 4.
+}
+
+pub fn turbulence(texture_size: usize, turbulence_size: usize, seed: u64) -> BufferedImage<f32>{
+	let mut buffer : BufferedImage<f32> = BufferedImage::new(texture_size, texture_size);
+	let perlin = Perlin::new(1);
+
+	let mut min: f32 = 1.;
+	let mut max: f32 = 0.;
+
+	for y in 0..texture_size{
+		for x in 0..texture_size{
+			let mut size: f64 = turbulence_size as f64;
+
+			buffer[(x, y)] = 0.;
+
+			while size >= 1.{
+				let nx = ((x as f64)/(texture_size as f64) / size) * 10.;
+				let ny = ((y as f64)/(texture_size as f64) / size) * 10.;
+
+				buffer[(x, y)] += perlin.get([nx, ny, seed as f64]) as f32 * size as f32;
+				size /= 2.;
+			}
+
+			buffer[(x, y)] /= turbulence_size as f32;
+
+			if buffer[(x, y)] < min{
+				min = buffer[(x, y)];
+			}
+			if buffer[(x, y)] > max{
+				max = buffer[(x, y)];
+			}
+
+			println!("{}", buffer[(x, y)]);
+
+		}
+	}
+
+	for y in 0..texture_size{
+		for x in 0..texture_size{
+			buffer[(x, y)] = (buffer[(x, y)] - min)/(max - min);
+		}
+	}
+	buffer
+}
+
+pub fn sine_pattern(texture_size: usize) -> BufferedImage<f32>{
+	let mut buffer : BufferedImage<f32> = BufferedImage::new(texture_size, texture_size);
+
+	for y in 0..(texture_size){
+		for x in 0..(texture_size){
+			buffer[(x, y)] = ((y+x) as f32 ).sin();
+		}
+	}
+
+	buffer
+}
+
+pub fn wood_pattern(turbulence: &BufferedImage<f32>) -> BufferedImage<f32>{
+	let mut buffer: BufferedImage<f32> = BufferedImage::new(turbulence.width, turbulence.height);
+
+	let power = 10.;
+
+	for y in 0..(turbulence.height){
+		for x in 0..(turbulence.width){
+			buffer[(x, y)] = ((
+				(x+y) as f32 + turbulence[(x, y)] * power
+				).sin().max(0.) + 0.3).min(1.0);
+		}
+	}
+
+	buffer
+}
+
+pub fn crate_pattern(texture_size: usize) -> BufferedImage<f32>{
+	let mut buffer: BufferedImage<f32> = BufferedImage::new(texture_size, texture_size);
+
+	/*for y in 0..texture_size{
+		for x in 0..texture_size{
+
+		}
+	}*/ //w.i.p
+	buffer
 }

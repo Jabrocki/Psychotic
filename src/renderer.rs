@@ -136,6 +136,10 @@ impl<'a> Renderer<'a> {
 
             let screen_buffer: &mut Vec<u32> = unsafe { transmute(&mut self.screen_buffer) };
 
+            let prog_manager: &PixelProgManager = unsafe { transmute(&self.prog_manager) };
+
+            let render_t = self.render_t;
+
             let joined = thread::spawn(move || {
                 for y_s in (start)..((start + chunk_size).min(window_height)) {
                     let p = (y_s - (window_height / 2)) as f32;
@@ -160,13 +164,37 @@ impl<'a> Renderer<'a> {
 
                         let f_t = floor_tex.unwrap();
                         let c_t = ceil_tex.unwrap();
+
+                        let fprog_t = prog_manager.dispatch_program(floor_id as u8);
+                        let cprog_t = prog_manager.dispatch_program(ceil_id as u8);
+
                         let tx = (f_t.width as f32 * (floor_pos.x - floor_pos.x.floor())) as u32
                             % f_t.width;
                         let ty = (f_t.height as f32 * (floor_pos.y - floor_pos.y.floor())) as u32
                             % f_t.height;
 
-                        let f_pixel = f_t.data[(ty * f_t.width + tx) as usize];
-                        let c_pixel = c_t.data[(ty * c_t.width + tx) as usize];
+                        let f_pixel = if fprog_t.is_none() {
+                        	f_t.data[(ty * f_t.width + tx) as usize]
+                        }
+                        else{
+	                       	fprog_t.unwrap().color(
+	                            prog_manager.pipeline_state(),
+	                            ty as u32,
+	                            tx as u32,
+	                            render_t,
+	                        )
+                        };
+                        let c_pixel = if cprog_t.is_none() {
+                       		c_t.data[(ty * c_t.width + tx) as usize]
+                        }
+                        else{
+	                       	cprog_t.unwrap().color(
+	                            prog_manager.pipeline_state(),
+	                            ty as u32,
+	                            tx as u32,
+	                            render_t,
+	                        )
+                        };
 
                         let f_shaded = (f_pixel & 0xFEFEFEFE) >> 1 | 0xFF000000;
 

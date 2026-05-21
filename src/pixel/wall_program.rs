@@ -1,4 +1,3 @@
-use noise::{NoiseFn, Perlin};
 use sdl2::pixels::Color;
 
 use crate::{image::{BufferedImage, Color4f}, pixel::utility::{fsin, step, step_x, worley_noise, worley_noise_border, worley_noise_bricks}, pixel_prog::PixelProgram};
