@@ -116,7 +116,7 @@ impl<'a> Game<'a> {
         world.ceil_map = level_generator.ceil_map;
         world.floor_map = level_generator.floor_map;
 
-        world.add_entity_dummy(Vector2::new(5.5, 5.5), 10);
+        world.add_entity_dummy(Vector2::new(player.position().x, player.position().y), 10);
         world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
 
         let mut player_ptr = EntityPtr::new(player);

@@ -414,11 +414,14 @@ impl<'a> Renderer<'a> {
                             * s_t.height as i32;
                         let tex_y = d / sprite_height;
 
-                        let s_pixel = s_t[(tex_x as usize, tex_y as usize)];
+                        let s_pixel = s_t.data[(tex_y as u32 * s_t.width as u32 + tex_x as u32) as usize];
 
                         if (s_pixel & 0x00FFFFFF) != 0 {
-                            self.screen_buffer[(stripe as usize, y as usize)] = s_pixel | 0xFF000000;
+                            self.screen_buffer.data[y as usize * (self.window_width as usize) + stripe as usize] =
+                                                            s_pixel | 0xFF000000;
+
                         }
+
                     }
                 }
             }
