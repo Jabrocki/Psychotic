@@ -78,7 +78,7 @@ pub fn worley_noise(texture_size: usize, cell_amount: usize, seed: u64) -> Buffe
 }
 
 pub fn worley_noise_bricks(texture_size: usize, cell_amount: usize, seed: u64,
-		brick_colors: Vec<Color4f>) -> BufferedImage<Color4f> {
+		brick_colors: Vec<Color4f>, t: f32) -> BufferedImage<Color4f> {
 	let mut buffer : BufferedImage<Color4f> = BufferedImage::new(texture_size, texture_size);
 	let mut cells : Vec<Vector2<i32>> = vec![];
 	let mut rng = rand::rngs::SmallRng::seed_from_u64(seed);
@@ -90,8 +90,8 @@ pub fn worley_noise_bricks(texture_size: usize, cell_amount: usize, seed: u64,
 		let c_x = c % cell_amount;
 		let c_y = c / cell_amount;
 
-		let x: f32 = rng.random_range(0.0..1.0);
-		let y: f32 = rng.random_range(0.0..1.0);
+		let x: f32 = rng.random_range(0.0..1.0)*(t.cos());
+		let y: f32 = rng.random_range(0.0..1.0)*(t.sin());
 
 		let x_final = ((cell_size as f32 * x) + (c_x * cell_size) as f32) as i32;
 		let y_final = ((cell_size as f32 * y) + (c_y * cell_size) as f32) as i32;
@@ -128,7 +128,7 @@ pub fn worley_noise_bricks(texture_size: usize, cell_amount: usize, seed: u64,
 	return buffer;
 }
 
-pub fn worley_noise_border(texture_size: usize, cell_amount: usize, seed: u64) -> BufferedImage<f32> {
+pub fn worley_noise_border(texture_size: usize, cell_amount: usize, seed: u64, t: f32) -> BufferedImage<f32> {
 	let mut buffer : BufferedImage<f32> = BufferedImage::new(texture_size, texture_size);
 	let mut cells : Vec<Vector2<i32>> = vec![];
 	let mut rng = rand::rngs::SmallRng::seed_from_u64(seed);
@@ -140,8 +140,8 @@ pub fn worley_noise_border(texture_size: usize, cell_amount: usize, seed: u64) -
 		let c_x = c % cell_amount;
 		let c_y = c / cell_amount;
 
-		let x: f32 = rng.random_range(0.0..1.0);
-		let y: f32 = rng.random_range(0.0..1.0);
+		let x: f32 = rng.random_range(0.0..1.0)*(t.cos());
+		let y: f32 = rng.random_range(0.0..1.0)*(t.sin());
 
 		let x_final = ((cell_size as f32 * x) + (c_x * cell_size) as f32) as i32;
 		let y_final = ((cell_size as f32 * y) + (c_y * cell_size) as f32) as i32;
