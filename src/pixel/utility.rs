@@ -263,10 +263,21 @@ pub fn wood_pattern(turbulence: &BufferedImage<f32>) -> BufferedImage<f32>{
 pub fn crate_pattern(texture_size: usize) -> BufferedImage<f32>{
 	let mut buffer: BufferedImage<f32> = BufferedImage::new(texture_size, texture_size);
 
-	/*for y in 0..texture_size{
+	for y in 0..texture_size{
 		for x in 0..texture_size{
-
+			if ((y - x) as f32).abs() <= 6.{
+				buffer[(x, y)] = 0.2;
+			}
+			else if ((-(texture_size as i32 - 1) + y as i32 + x as i32) as f32).abs() <= 3.{
+				buffer[(x, y)] = 0.2;
+			}
+			else if (x) < 3 || (y) > texture_size - 4 || x > texture_size - 4 || y < 3{
+				buffer[(x, y)] = 0.2;
+			}
+			else {
+				buffer[(x, y)] = 1.;
+			}
 		}
-	}*/ //w.i.p
+	}
 	buffer
 }
