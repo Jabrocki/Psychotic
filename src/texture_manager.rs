@@ -1,10 +1,8 @@
 use sdl2::{image::LoadSurface, pixels::PixelFormatEnum, surface::Surface};
 
-pub struct TextureDataStatic {
-    pub width: u32,
-    pub height: u32,
-    pub data: Vec<u32>,
-}
+use crate::image::BufferedImage;
+
+pub type TextureDataStatic = BufferedImage<u32>;
 
 pub struct TextureManager {
     textures_static: Vec<Option<TextureDataStatic>>,
@@ -24,8 +22,8 @@ impl TextureManager {
             .convert_format(PixelFormatEnum::ABGR8888)
             .expect("Failed to convert surface format");
 
-        let width = opt_surface.width();
-        let height = opt_surface.height();
+        let width = opt_surface.width() as usize;
+        let height = opt_surface.height() as usize;
 
         let data = opt_surface.with_lock(|data| unsafe {
             std::slice::from_raw_parts(data.as_ptr() as *const u32, data.len() / 4).to_vec()

@@ -1,4 +1,3 @@
-use noise::{NoiseFn, Perlin};
 use sdl2::pixels::Color;
 
 use crate::{image::{BufferedImage, Color4f}, pixel::utility::{fsin, step, step_x, worley_noise, worley_noise_border, worley_noise_bricks}, pixel_prog::PixelProgram};
@@ -12,12 +11,12 @@ pub struct WallProgram{
 
 impl PixelProgram for WallProgram {
 	fn update(&mut self, t: f32) {
-		self.worley = worley_noise_bricks(64, 5, WALL_SEED + (t as u64)/30, vec![
+		self.worley = worley_noise_bricks(64, 5, WALL_SEED, vec![
 			Color4f(0.33,0.33,0.33,1.),
 			Color4f(0.28,0.21,0.09,1.),
 			Color4f(0.25,0.25,0.25,1.),
-		 	Color4f(0.36,0.24,0.12,1.)]);
-		self.worley_pure = worley_noise_border(64, 5, WALL_SEED + (t as u64)/30);
+		 	Color4f(0.36,0.24,0.12,1.)], t/100.+100.);
+		self.worley_pure = worley_noise_border(64, 5, WALL_SEED, t/100.+100.);
     }
 
     fn color(&self, state: &crate::pixel_prog::PipelineState, x: u32, y: u32, t: f32) -> u32 {
@@ -44,8 +43,8 @@ impl WallProgram {
 				Color4f(0.33,0.33,0.33,1.),
 				Color4f(0.28,0.21,0.09,1.),
 				Color4f(0.25,0.25,0.25,1.),
-			 	Color4f(0.36,0.24,0.12,1.)]),
-			worley_pure: worley_noise_border(64, 5, WALL_SEED),
+			 	Color4f(0.36,0.24,0.12,1.)], 0.),
+			worley_pure: worley_noise_border(64, 5, WALL_SEED, 0.),
 		}
 	}
 }

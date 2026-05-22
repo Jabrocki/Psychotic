@@ -1,4 +1,4 @@
-use crate::pixel::wall_program::WallProgram;
+use crate::pixel::{wall_program::WallProgram, wood_texture::WoodTexture};
 
 
 pub trait PixelProgram{
@@ -35,6 +35,7 @@ impl PixelProgManager {
 
      	progs.push(None);
     	progs.push(Some(Box::new(WallProgram::new()) as Box<dyn PixelProgram + Send + Sync>));
+     	progs.push(Some(Box::new(WoodTexture::new()) as Box<dyn PixelProgram + Send + Sync>));
 
         Self { programs: progs, state: PipelineState {  }}
     }

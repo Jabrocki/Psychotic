@@ -35,7 +35,7 @@ impl Texel for u64 {
 pub struct BufferedImage<T> where T: Texel{
 	pub width: usize,
     pub height: usize,
-    data: Vec<T>,
+    pub data: Vec<T>,
 }
 
 impl<T> BufferedImage<T> where T: Texel{
