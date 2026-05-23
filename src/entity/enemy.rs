@@ -1,6 +1,7 @@
-use nalgebra::Vector2;
+use nalgebra::{Rotation2, Vector2};
+use rand::seq::IndexedRandom;
 
-use crate::{entities::Entity, entity::unit::UnitEntity, movement::Moveable};
+use crate::{entities::Entity, entity::unit::UnitEntity, movement::Moveable, player::Player};
 
 pub struct Enemy{
 	position: Vector2<f32>,
@@ -12,6 +13,46 @@ pub struct Enemy{
     max_hp: i32,
     atk: i32,
     df: i32,
+
+    move_ticks: i32,
+    chase_dir: Vector2<f32>
+}
+
+impl Enemy {
+	pub fn new(position: Vector2<f32>) -> Self{
+		Self{
+			position,
+			velocity: Vector2::new(0., 0.),
+			acceleration: Vector2::new(0., 0.),
+			hit_box: Vector2::new(0.1, 0.1),
+
+			hp: 10,
+			max_hp: 10,
+			atk: 1,
+			df: 1,
+
+			move_ticks: 0,
+			chase_dir: Vector2::new(0., 0.)
+		}
+	}
+
+	fn update_chase_dir(&mut self, world: &mut crate::world::World, delta_time: f32){
+		if self.move_ticks == 0{
+			let p = world.player.unwrap();
+			let p: &mut Player = unsafe {&mut *p};
+			let player_pos = p.position();
+			let dir = (player_pos - self.position).normalize();
+
+			let angle = (vec![-1., 0., 1.].choose(&mut world.random)).unwrap() * 20. / 3.14;
+			let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
+
+			self.chase_dir = rotation_matrix * dir;
+			self.move_ticks+=75;
+		}
+		self.move_ticks-=1;
+
+		self.acceleration = Vector2::new(self.chase_dir.x*20., self.chase_dir.y*20.);
+	}
 }
 
 impl Entity for Enemy {
@@ -24,7 +65,14 @@ impl Entity for Enemy {
     }
 
     fn update(&mut self, world: &mut crate::world::World, delta_time: f32) {
-    	self.simulate_movement(world, delta_time);
+    	self.update_chase_dir(world, delta_time);
+    	let hit = self.simulate_movement(world, delta_time);
+
+     	if hit{
+      		let angle = (vec![-1., 1.].choose(&mut world.random)).unwrap() * 3.14 / 2.;
+	        let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
+      		self.chase_dir = rotation_matrix * self.chase_dir;
+      	}
     }
 
     fn sprite_id(&self) -> Option<u8> {

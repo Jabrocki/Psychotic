@@ -1,6 +1,7 @@
 use nalgebra::Vector2;
+use rand::SeedableRng;
 
-use crate::entities::{Dummy, EntityPtr};
+use crate::{entities::{Dummy, Entity, EntityPtr}, player::Player};
 
 pub struct World {
     pub width: usize,
@@ -11,6 +12,9 @@ pub struct World {
     entities: Vec<EntityPtr>,
     stage_added: Vec<EntityPtr>,
     stage_removed: Vec<entity_id>,
+    pub random: rand::rngs::SmallRng,
+
+    pub player: Option<*mut Player>,
 }
 
 pub type entity_id = u32;
@@ -36,6 +40,8 @@ impl World {
             entities: Vec::new(),
             stage_added: Vec::new(),
             stage_removed: Vec::new(),
+            player: None,
+            random: rand::rngs::SmallRng::seed_from_u64(128 as u64)
         }
     }
 
@@ -86,6 +92,22 @@ impl World {
 
     pub fn force_add_entity(&mut self, entity: EntityPtr) {
         self.entities.push(entity);
+    }
+
+    pub fn stage_add_entity_direct<T: Entity + 'static>(&mut self, entity: T) -> (EntityPtr, &mut T){
+    	let mut eptr = EntityPtr::new::<T>(entity);
+
+    	self.stage_add_entity(eptr);
+
+     	(eptr, eptr.direct())
+    }
+
+    pub fn force_add_entity_direct<T: Entity + 'static>(&mut self, entity: T) -> (EntityPtr, &mut T){
+    	let mut eptr = EntityPtr::new::<T>(entity);
+
+    	self.force_add_entity(eptr);
+
+     	(eptr, eptr.direct())
     }
 
     pub fn get_entities(&self) -> &Vec<EntityPtr> {
