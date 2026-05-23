@@ -1,6 +1,6 @@
 use nalgebra::{Rotation2, Vector2};
 
-use crate::{entities::Entity, world::World};
+use crate::{entities::Entity, entity::unit::UnitEntity, world::World};
 
 pub struct Player {
     position: Vector2<f32>,
@@ -8,6 +8,11 @@ pub struct Player {
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
     hit_box: Vector2<f32>,
+
+    hp: i32,
+    max_hp: i32,
+    atk: i32,
+    df: i32,
 }
 
 impl Player {
@@ -18,6 +23,11 @@ impl Player {
             velocity: Vector2::new(0.0, 0.0),
             acceleration: Vector2::new(0.0, 0.0),
             hit_box: Vector2::new(0.1, 0.1),
+
+            hp: 30,
+            max_hp: 30,
+            atk: 2,
+            df: 0,
         }
     }
 
@@ -94,5 +104,31 @@ impl Entity for Player {
 
     fn sprite_id(&self) -> Option<u8> {
         None
+    }
+}
+
+impl UnitEntity for Player{
+    fn set_hp(&mut self, hp: i32) {
+    	self.hp = hp;
+    }
+
+    fn hp(&self) -> i32 {
+    	self.hp
+    }
+
+    fn set_max_hp(&mut self, max_hp: i32) {
+    	self.max_hp = max_hp;
+    }
+
+    fn max_hp(&self) -> i32 {
+    	self.max_hp
+    }
+
+    fn atk(&self) -> i32 {
+    	self.atk
+    }
+
+    fn df(&self) -> i32 {
+    	self.df
     }
 }

@@ -11,3 +11,5 @@ pub mod world;
 pub mod level;
 pub mod pixel;
 pub mod image;
+
+pub mod entity;
