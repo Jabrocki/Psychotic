@@ -36,12 +36,16 @@ impl Enemy {
 		}
 	}
 
-	fn update_chase_dir(&mut self, world: &mut crate::world::World, delta_time: f32){
+	fn update_chase_dir(&mut self, world: &mut crate::world::World){
 		if self.move_ticks == 0{
 			let p = world.player.unwrap();
 			let p: &mut Player = unsafe {&mut *p};
 			let player_pos = p.position();
 			let dir = (player_pos - self.position).normalize();
+
+			if dir.norm() > 10.{
+				return;
+			}
 
 			let angle = (vec![-1., 0., 1.].choose(&mut world.random)).unwrap() * 20. / 3.14;
 			let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
@@ -65,7 +69,7 @@ impl Entity for Enemy {
     }
 
     fn update(&mut self, world: &mut crate::world::World, delta_time: f32) {
-    	self.update_chase_dir(world, delta_time);
+    	self.update_chase_dir(world);
     	let hit = self.simulate_movement(world, delta_time);
 
      	if hit{

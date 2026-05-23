@@ -1,6 +1,6 @@
 use std::{
     mem::transmute,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::Ordering},
     thread,
 };
 
@@ -360,7 +360,7 @@ impl<'a> Renderer<'a> {
         sorted_entities.sort_unstable_by(|a, b| {
             let dist_a = (player.position() - a.position()).norm_squared();
             let dist_b = (player.position() - b.position()).norm_squared();
-            dist_b.partial_cmp(&dist_a).unwrap()
+            dist_b.partial_cmp(&dist_a).unwrap_or_else(||{std::cmp::Ordering::Equal})
         });
 
         for entity in sorted_entities {

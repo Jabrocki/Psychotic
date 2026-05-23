@@ -115,7 +115,9 @@ impl<'a> Game<'a> {
         //world.add_entity_dummy(Vector2::new(player.position().x, player.position().y), 10);
         //world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
 
-        world.force_add_entity_direct(Enemy::new(Vector2::new(player.position().x, player.position().y)));
+        for _ in 0..10{
+        	world.force_add_entity_direct(Enemy::new(Vector2::new(player.position().x, player.position().y)));
+        }
 
         let mut player_ptr = EntityPtr::new(player);
         let player = player_ptr.direct();
