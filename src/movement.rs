@@ -9,7 +9,7 @@ pub trait Moveable : Entity{
 	fn set_velocity(&mut self, velocity: Vector2<f32>);
 	fn velocity(&self) -> Vector2<f32>;
 
-	fn set_hit_box(&mut self, velocity: Vector2<f32>);
+	fn set_hit_box(&mut self, hit_box: Vector2<f32>);
 	fn hit_box(&self) -> Vector2<f32>;
 
 	fn simulate_movement(&mut self, world: &mut World, delta_time: f32) {

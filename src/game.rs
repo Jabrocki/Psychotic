@@ -76,6 +76,8 @@ impl<'a> Game<'a> {
 
         // Load sprites
         texture_manager.load_static(10, "images/pillar.png");
+        texture_manager.load_static(11, "images/hand_1.png");
+        texture_manager.load_static(12, "images/hand_2.png");
 
         // World hardcoded for now
         let small_room_file = RoomFile::from_file("rooms/small_room.json");
