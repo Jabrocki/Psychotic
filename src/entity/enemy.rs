@@ -1,7 +1,7 @@
 use nalgebra::{Rotation2, Vector2};
 use rand::seq::IndexedRandom;
 
-use crate::{entities::Entity, entity::unit::UnitEntity, movement::Moveable, player::Player};
+use crate::{animation::AnimationState, entities::Entity, entity::unit::UnitEntity, movement::Moveable, player::Player, shoot::raycast2d};
 
 pub struct Enemy{
 	position: Vector2<f32>,
@@ -15,7 +15,11 @@ pub struct Enemy{
     df: i32,
 
     move_ticks: i32,
-    chase_dir: Vector2<f32>
+    chase_dir: Vector2<f32>,
+
+    animation_state: AnimationState,
+
+    fire_delay: f32,
 }
 
 impl Enemy {
@@ -32,7 +36,10 @@ impl Enemy {
 			df: 1,
 
 			move_ticks: 0,
-			chase_dir: Vector2::new(0., 0.)
+			chase_dir: Vector2::new(0., 0.),
+
+			animation_state: AnimationState::new(11),
+			fire_delay: 0.
 		}
 	}
 
@@ -57,6 +64,26 @@ impl Enemy {
 
 		self.acceleration = Vector2::new(self.chase_dir.x*20., self.chase_dir.y*20.);
 	}
+
+	fn try_shooting(&mut self, world: &mut crate::world::World){
+		if self.fire_delay <= 0. {
+			let p = world.player.unwrap();
+			let p: &mut Player = unsafe {&mut *p};
+			let player_pos = p.position();
+			let dir = (player_pos - self.position).normalize();
+
+			if dir.norm() > 10.{
+				return;
+			}
+
+			if  (player_pos - self.position).norm() < 0.2 || (raycast2d(world, self.position, dir) - self.position).norm()
+					> (player_pos - self.position).norm() {
+				// we can shoot
+				self.animation_state.set_frame(12, 1.);
+				self.fire_delay += 2.;
+			}
+		}
+	}
 }
 
 impl Entity for Enemy {
@@ -77,10 +104,14 @@ impl Entity for Enemy {
 	        let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
       		self.chase_dir = rotation_matrix * self.chase_dir;
       	}
+
+       	self.fire_delay -= delta_time;
+      	self.try_shooting(world);
+       	self.animation_state.update(delta_time);
     }
 
     fn sprite_id(&self) -> Option<u8> {
-    	Some(11)
+   		Some(self.animation_state.current_state)
     }
 }
 
