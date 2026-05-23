@@ -18,3 +18,5 @@ pub mod movement;
 
 pub mod animation;
 pub mod shoot;
+
+pub mod pathfinder;
