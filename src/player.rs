@@ -1,6 +1,6 @@
 use nalgebra::{Rotation2, Vector2};
 
-use crate::{entities::Entity, entity::unit::UnitEntity, world::World};
+use crate::{entities::Entity, entity::unit::UnitEntity, movement::Moveable, world::World};
 
 pub struct Player {
     position: Vector2<f32>,
@@ -83,23 +83,7 @@ impl Entity for Player {
     }
 
     fn update(&mut self, world: &mut World, delta_time: f32) {
-        self.velocity += self.acceleration * delta_time;
-        let new_position_x = self.position.x + self.velocity.x * delta_time;
-        if !world.wall_collsion(Vector2::new(new_position_x, self.position.y), self.hit_box) {
-            self.position.x = new_position_x;
-            self.velocity.x *= 0.8;
-        } else {
-            self.velocity.x = 0.0;
-        }
-
-        let new_position_y = self.position.y + self.velocity.y * delta_time;
-        if !world.wall_collsion(Vector2::new(self.position.x, new_position_y), self.hit_box) {
-            self.position.y = new_position_y;
-            self.velocity.y *= 0.8;
-        } else {
-            self.velocity.y = 0.0;
-        }
-        self.acceleration = Vector2::new(0.0, 0.0);
+    	self.simulate_movement(world, delta_time);
     }
 
     fn sprite_id(&self) -> Option<u8> {
@@ -130,5 +114,31 @@ impl UnitEntity for Player{
 
     fn df(&self) -> i32 {
     	self.df
+    }
+}
+
+impl Moveable for Player {
+    fn set_acceleration(&mut self, acceleration: Vector2<f32>) {
+    	self.acceleration = acceleration;
+    }
+
+    fn acceleration(&self) -> Vector2<f32> {
+   		self.acceleration
+    }
+
+    fn set_velocity(&mut self, velocity: Vector2<f32>) {
+    	self.velocity = velocity;
+    }
+
+    fn velocity(&self) -> Vector2<f32> {
+    	self.velocity
+    }
+
+    fn set_hit_box(&mut self, hit_box: Vector2<f32>) {
+    	self.hit_box = hit_box;
+    }
+
+    fn hit_box(&self) -> Vector2<f32> {
+    	self.hit_box
     }
 }

@@ -13,3 +13,5 @@ pub mod pixel;
 pub mod image;
 
 pub mod entity;
+
+pub mod movement;
