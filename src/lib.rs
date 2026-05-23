@@ -15,3 +15,6 @@ pub mod image;
 pub mod entity;
 
 pub mod movement;
+
+pub mod animation;
+pub mod shoot;

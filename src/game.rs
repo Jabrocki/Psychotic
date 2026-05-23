@@ -4,16 +4,10 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entities::EntityPtr,
-    event_handler::EventHandler,
-    level::{
+    entities::EntityPtr, entity::enemy::Enemy, event_handler::EventHandler, level::{
         level_class::{Level, RoomData},
         room_file::RoomFile,
-    },
-    player::Player,
-    renderer::Renderer,
-    texture_manager::TextureManager,
-    world::World,
+    }, player::Player, renderer::Renderer, texture_manager::TextureManager, world::World
 };
 
 pub struct Game<'a> {
@@ -76,6 +70,8 @@ impl<'a> Game<'a> {
 
         // Load sprites
         texture_manager.load_static(10, "images/pillar.png");
+        texture_manager.load_static(11, "images/hand_1.png");
+        texture_manager.load_static(12, "images/hand_2.png");
 
         // World hardcoded for now
         let small_room_file = RoomFile::from_file("rooms/small_room.json");
@@ -116,11 +112,17 @@ impl<'a> Game<'a> {
         world.ceil_map = level_generator.ceil_map;
         world.floor_map = level_generator.floor_map;
 
-        world.add_entity_dummy(Vector2::new(player.position().x, player.position().y), 10);
-        world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
+        //world.add_entity_dummy(Vector2::new(player.position().x, player.position().y), 10);
+        //world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
+
+        for _ in 0..1{
+        	world.force_add_entity_direct(Enemy::new(Vector2::new(player.position().x, player.position().y)));
+        }
 
         let mut player_ptr = EntityPtr::new(player);
         let player = player_ptr.direct();
+
+        world.player = Some(player);
 
         world.force_add_entity(player_ptr);
 

@@ -12,7 +12,7 @@ pub trait Entity {
     fn position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
 
-    fn update(&mut self, entities: &mut World, delta_time: f32);
+    fn update(&mut self, world: &mut World, delta_time: f32);
 
     fn sprite_id(&self) -> Option<u8>;
 }
