@@ -1,4 +1,4 @@
-use sdl2::{EventPump, event::*, keyboard::*};
+use sdl2::{EventPump, event::*, keyboard::*, mouse::MouseButton};
 
 use crate::player::Player;
 
@@ -23,6 +23,9 @@ impl EventHandler {
                 }
                 Event::MouseMotion { xrel, .. } => {
                     player.rotate((xrel as f32) * 0.005);
+                }
+                Event::MouseButtonDown { mouse_btn : MouseButton::Left, ..} => {
+                	player.shoot()
                 }
                 _ => {}
             }

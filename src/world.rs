@@ -15,6 +15,7 @@ pub struct World {
     pub random: rand::rngs::SmallRng,
 
     pub player: Option<*mut Player>,
+    pub player_id: Option<entity_id>
 }
 
 pub type entity_id = u32;
@@ -41,6 +42,7 @@ impl World {
             stage_added: Vec::new(),
             stage_removed: Vec::new(),
             player: None,
+            player_id: None,
             random: rand::rngs::SmallRng::seed_from_u64(128 as u64)
         }
     }

@@ -123,6 +123,7 @@ impl<'a> Game<'a> {
         let player = player_ptr.direct();
 
         world.player = Some(player);
+        world.player_id = Some(player_ptr.id());
 
         world.force_add_entity(player_ptr);
 

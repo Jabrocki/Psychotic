@@ -1,7 +1,17 @@
 use nalgebra::{Rotation2, Vector2};
 use rand::seq::IndexedRandom;
 
-use crate::{animation::AnimationState, entities::Entity, entity::unit::UnitEntity, movement::Moveable, player::Player, shoot::raycast2d};
+use crate::{animation::AnimationState, entities::Entity, entity::unit::UnitEntity, movement::Moveable, pathfinder::find_path, player::Player, shoot::raycast2d, world::World};
+
+#[derive(Debug)]
+enum EnemyState {
+    ChaseState,
+    PathfindingState {
+    	path: Vec<Vector2<i32>>,
+    },
+    Idle,
+    Inactive,
+}
 
 pub struct Enemy{
 	position: Vector2<f32>,
@@ -14,8 +24,11 @@ pub struct Enemy{
     atk: i32,
     df: i32,
 
+    state: EnemyState,
+    direction: Vector2<f32>,
     move_ticks: i32,
-    chase_dir: Vector2<f32>,
+
+    no_bounce: bool,
 
     animation_state: AnimationState,
 
@@ -28,41 +41,82 @@ impl Enemy {
 			position,
 			velocity: Vector2::new(0., 0.),
 			acceleration: Vector2::new(0., 0.),
-			hit_box: Vector2::new(0.1, 0.1),
+			hit_box: Vector2::new(0.4, 0.4),
 
 			hp: 10,
 			max_hp: 10,
 			atk: 1,
 			df: 1,
 
+			state: EnemyState::Inactive,
 			move_ticks: 0,
-			chase_dir: Vector2::new(0., 0.),
+			direction: Vector2::new(0., 0.),
+
+			no_bounce: false,
 
 			animation_state: AnimationState::new(11),
 			fire_delay: 0.
 		}
 	}
 
-	fn update_chase_dir(&mut self, world: &mut crate::world::World){
+	fn update_chase(&mut self, world: &mut crate::world::World) -> EnemyState{
+		self.no_bounce = false;
 		if self.move_ticks == 0{
 			let p = world.player.unwrap();
 			let p: &mut Player = unsafe {&mut *p};
 			let player_pos = p.position();
-			let dir = (player_pos - self.position).normalize();
+
+			let dir = player_pos - self.position;
 
 			if dir.norm() > 10.{
-				return;
+				return EnemyState::PathfindingState { path: vec![] };
 			}
+
+			let dir = dir.normalize();
 
 			let angle = (vec![-1., 0., 1.].choose(&mut world.random)).unwrap() * 20. / 3.14;
 			let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
 
-			self.chase_dir = rotation_matrix * dir;
+			self.direction = rotation_matrix * dir;
 			self.move_ticks+=75;
 		}
 		self.move_ticks-=1;
 
-		self.acceleration = Vector2::new(self.chase_dir.x*20., self.chase_dir.y*20.);
+		self.acceleration = Vector2::new(self.direction.x*20., self.direction.y*20.);
+		EnemyState::ChaseState
+	}
+
+	fn update_pathfinding(&mut self, world: &mut crate::world::World, mut path: Vec<Vector2<i32>>) -> EnemyState{
+		self.no_bounce = true;
+
+		let p = world.player.unwrap();
+		let p: &mut Player = unsafe {&mut *p};
+		let player_pos = p.position();
+
+		if (self.position - player_pos).norm() <= 2. {
+			return EnemyState::ChaseState;
+		}
+
+		if path.len() == 0{
+
+			path = find_path(player_pos.x as i32, player_pos.y as i32, self.position.x as i32, self.position.y as i32, world)
+					.unwrap_or_default();
+			path.reverse();
+		}
+		else {
+			if self.move_ticks <= 0 {
+				let target = path.pop().unwrap();
+				let target = Vector2::new(target.x as f32 + 0.5, target.y as f32 + 0.5);
+				let dir = (target - self.position).normalize();
+
+				self.direction = dir;
+				self.move_ticks+=75;
+			}
+		}
+		self.move_ticks-=1;
+		self.acceleration = Vector2::new(self.direction.x*20., self.direction.y*20.);
+
+		EnemyState::PathfindingState { path }
 	}
 
 	fn try_shooting(&mut self, world: &mut crate::world::World){
@@ -84,6 +138,19 @@ impl Enemy {
 			}
 		}
 	}
+
+	fn seek_player(&mut self, world: &World) -> EnemyState{
+		let p = world.player.unwrap();
+		let p: &mut Player = unsafe {&mut *p};
+		let player_pos = p.position();
+
+		if (self.position - player_pos).norm() <= 5. {
+			EnemyState::ChaseState
+		}
+		else{
+			EnemyState::Inactive
+		}
+	}
 }
 
 impl Entity for Enemy {
@@ -96,13 +163,21 @@ impl Entity for Enemy {
     }
 
     fn update(&mut self, world: &mut crate::world::World, delta_time: f32) {
-    	self.update_chase_dir(world);
+    	let mut old_state = EnemyState::Idle;
+     	std::mem::swap(&mut self.state, &mut old_state);
+
+    	self.state = match old_state{
+     		EnemyState::ChaseState => self.update_chase(world),
+     		EnemyState::PathfindingState { path } => self.update_pathfinding(world, path),
+     		EnemyState::Inactive => self.seek_player(world),
+       		_ => EnemyState::ChaseState
+     	};
     	let hit = self.simulate_movement(world, delta_time);
 
-     	if hit{
+     	if hit && !self.no_bounce{
       		let angle = (vec![-1., 1.].choose(&mut world.random)).unwrap() * 3.14 / 2.;
 	        let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
-      		self.chase_dir = rotation_matrix * self.chase_dir;
+      		self.direction = rotation_matrix * self.direction;
       	}
 
        	self.fire_delay -= delta_time;
@@ -112,6 +187,10 @@ impl Entity for Enemy {
 
     fn sprite_id(&self) -> Option<u8> {
    		Some(self.animation_state.current_state)
+    }
+
+    fn bounding_box(&self) -> Vector2<f32> {
+    	self.hit_box
     }
 }
 
@@ -156,13 +235,5 @@ impl Moveable for Enemy{
 
     fn velocity(&self) -> Vector2<f32> {
     	self.velocity
-    }
-
-    fn set_hit_box(&mut self, hit_box: Vector2<f32>) {
-    	self.hit_box = hit_box;
-    }
-
-    fn hit_box(&self) -> Vector2<f32> {
-    	self.hit_box
     }
 }
