@@ -183,7 +183,6 @@ impl Entity for Enemy {
        	self.fire_delay -= delta_time;
       	self.try_shooting(world);
        	self.animation_state.update(delta_time);
-        println!("{}", self.hp);
     }
 
     fn sprite_id(&self) -> Option<u8> {
