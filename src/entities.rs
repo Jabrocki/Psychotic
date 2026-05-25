@@ -15,6 +15,12 @@ pub trait Entity {
     fn update(&mut self, world: &mut World, delta_time: f32);
 
     fn sprite_id(&self) -> Option<u8>;
+
+	fn bounding_box(&self) -> Vector2<f32>;
+
+	fn hit(&mut self){
+
+	}
 }
 
 #[derive(Clone, Copy)]
@@ -81,6 +87,10 @@ impl EntityPtr {
     pub fn direct<T>(&mut self) -> &'static mut T {
         unsafe { &mut *(self.data as *mut T) }
     }
+
+    pub fn any(&mut self) -> &'static mut dyn Any {
+    	unsafe { &mut *(self.dynamic) }
+    }
 }
 
 pub struct Dummy {
@@ -101,6 +111,10 @@ impl Entity for Dummy {
 
     fn sprite_id(&self) -> Option<u8> {
         Some(self.sprite_id)
+    }
+
+    fn bounding_box(&self) -> Vector2<f32> {
+    	Vector2::new(0., 0.)
     }
 }
 

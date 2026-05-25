@@ -41,7 +41,7 @@ impl Enemy {
 			position,
 			velocity: Vector2::new(0., 0.),
 			acceleration: Vector2::new(0., 0.),
-			hit_box: Vector2::new(0.1, 0.1),
+			hit_box: Vector2::new(0.4, 0.4),
 
 			hp: 10,
 			max_hp: 10,
@@ -183,10 +183,15 @@ impl Entity for Enemy {
        	self.fire_delay -= delta_time;
       	self.try_shooting(world);
        	self.animation_state.update(delta_time);
+        println!("{}", self.hp);
     }
 
     fn sprite_id(&self) -> Option<u8> {
    		Some(self.animation_state.current_state)
+    }
+
+    fn bounding_box(&self) -> Vector2<f32> {
+    	self.hit_box
     }
 }
 
@@ -231,13 +236,5 @@ impl Moveable for Enemy{
 
     fn velocity(&self) -> Vector2<f32> {
     	self.velocity
-    }
-
-    fn set_hit_box(&mut self, hit_box: Vector2<f32>) {
-    	self.hit_box = hit_box;
-    }
-
-    fn hit_box(&self) -> Vector2<f32> {
-    	self.hit_box
     }
 }
