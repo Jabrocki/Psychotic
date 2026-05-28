@@ -1,6 +1,12 @@
 use nalgebra::{Rotation2, Vector2};
 
-use crate::{entities::Entity, entity::{enemy::Enemy, unit::UnitEntity}, movement::Moveable, shoot::{raycast2d, raycast2d_entities_except_player}, world::World};
+use crate::{
+    entities::Entity,
+    entity::{enemy::Enemy, unit::UnitEntity},
+    movement::Moveable,
+    shoot::{raycast2d, raycast2d_entities_except_player},
+    world::World,
+};
 
 pub struct Player {
     position: Vector2<f32>,
@@ -26,7 +32,7 @@ impl Player {
             acceleration: Vector2::new(0.0, 0.0),
             hit_box: Vector2::new(0.1, 0.1),
 
-            hp: 30,
+            hp: 25,
             max_hp: 30,
             atk: 2,
             df: 0,
@@ -70,8 +76,8 @@ impl Player {
         self.direction = rotation_matrix * self.direction;
     }
 
-    pub fn shoot(&mut self){
-    	self.shooting_requested = true;
+    pub fn shoot(&mut self) {
+        self.shooting_requested = true;
     }
 }
 
@@ -91,42 +97,45 @@ impl Entity for Player {
     }
 
     fn update(&mut self, world: &mut World, delta_time: f32) {
-    	self.simulate_movement(world, delta_time);
+        self.simulate_movement(world, delta_time);
 
-     	if self.shooting_requested{
-   		 	let raycast_entity_res = raycast2d_entities_except_player(world, self.position, self.direction);
-       		let raycast_wall = raycast2d(world, self.position, self.direction);
+        if self.shooting_requested {
+            let raycast_entity_res =
+                raycast2d_entities_except_player(world, self.position, self.direction);
+            let raycast_wall = raycast2d(world, self.position, self.direction);
 
-         	//println!("{:?} {:?}", raycast_entity_res, raycast_wall);
+            //println!("{:?} {:?}", raycast_entity_res, raycast_wall);
 
-         	match raycast_entity_res {
-          		Some((entity_id, pos)) => {
-            		let diff1 = raycast_wall - self.position;
-              		let diff_entity = pos - self.position;
-                	if diff_entity.norm() < diff1.norm(){
-               			let extracted = world.get_entities().iter().filter(|e| e.id() == entity_id).next();
-                  		match extracted  {
-                    		Some(&target) => {
-                      			let mut target = target;
-                   				let unit_target: Option<&mut Enemy> = target.any().downcast_mut();
+            match raycast_entity_res {
+                Some((entity_id, pos)) => {
+                    let diff1 = raycast_wall - self.position;
+                    let diff_entity = pos - self.position;
+                    if diff_entity.norm() < diff1.norm() {
+                        let extracted = world
+                            .get_entities()
+                            .iter()
+                            .filter(|e| e.id() == entity_id)
+                            .next();
+                        match extracted {
+                            Some(&target) => {
+                                let mut target = target;
+                                let unit_target: Option<&mut Enemy> = target.any().downcast_mut();
 
-                       			match unit_target {
-                          			Some(enemy_ref) => {
-                         				world.remove_entity(target.id());
-                             		}
-                               		None => {
-
-                                 	}
-                          		}
-                      		}
-                        	None => {}
-                    	}
-                 	}
-            	}
-          		None => {}
-          	}
-           self.shooting_requested = false;
-      	}
+                                match unit_target {
+                                    Some(enemy_ref) => {
+                                        world.remove_entity(target.id());
+                                    }
+                                    None => {}
+                                }
+                            }
+                            None => {}
+                        }
+                    }
+                }
+                None => {}
+            }
+            self.shooting_requested = false;
+        }
     }
 
     fn sprite_id(&self) -> Option<u8> {
@@ -134,50 +143,50 @@ impl Entity for Player {
     }
 
     fn bounding_box(&self) -> Vector2<f32> {
-    	self.hit_box
+        self.hit_box
     }
 }
 
-impl UnitEntity for Player{
+impl UnitEntity for Player {
     fn set_hp(&mut self, hp: i32) {
-    	self.hp = hp;
+        self.hp = hp;
     }
 
     fn hp(&self) -> i32 {
-    	self.hp
+        self.hp
     }
 
     fn set_max_hp(&mut self, max_hp: i32) {
-    	self.max_hp = max_hp;
+        self.max_hp = max_hp;
     }
 
     fn max_hp(&self) -> i32 {
-    	self.max_hp
+        self.max_hp
     }
 
     fn atk(&self) -> i32 {
-    	self.atk
+        self.atk
     }
 
     fn df(&self) -> i32 {
-    	self.df
+        self.df
     }
 }
 
 impl Moveable for Player {
     fn set_acceleration(&mut self, acceleration: Vector2<f32>) {
-    	self.acceleration = acceleration;
+        self.acceleration = acceleration;
     }
 
     fn acceleration(&self) -> Vector2<f32> {
-   		self.acceleration
+        self.acceleration
     }
 
     fn set_velocity(&mut self, velocity: Vector2<f32>) {
-    	self.velocity = velocity;
+        self.velocity = velocity;
     }
 
     fn velocity(&self) -> Vector2<f32> {
-    	self.velocity
+        self.velocity
     }
 }

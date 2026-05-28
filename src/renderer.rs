@@ -1,8 +1,4 @@
-use std::{
-    mem::transmute,
-    sync::{Arc, Mutex, atomic::Ordering},
-    thread,
-};
+use std::{mem::transmute, thread};
 
 use nalgebra::{Matrix2, Vector2};
 use sdl2::{
@@ -13,7 +9,8 @@ use sdl2::{
 };
 
 use crate::{
-    entities::EntityPtr, image::BufferedImage, pixel_prog::*, player::Player, texture_manager::TextureManager, world::World
+    entities::EntityPtr, image::BufferedImage, pixel_prog::*, player::Player,
+    texture_manager::TextureManager, world::World,
 };
 
 struct RenderJobWrapper {
@@ -31,13 +28,13 @@ const JOB_AMOUNT: usize = 5;
 
 pub struct Renderer<'a> {
     canvas: Canvas<Window>,
-    window_width: usize,
-    window_height: usize,
-    screen_buffer: BufferedImage<u32>,
+    pub window_width: usize,
+    pub window_height: usize,
+    pub screen_buffer: BufferedImage<u32>,
     z_buffer: Vec<f32>,
     texture: Texture<'a>,
     prog_manager: PixelProgManager,
-    render_t: f32,
+    pub render_t: f32,
 }
 
 // TODO: generalny refactoring renderera, żeby był bardziej modularny i czytelny, można podzielić
@@ -77,7 +74,7 @@ impl<'a> Renderer<'a> {
     pub fn render(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         //self.screen_buffer.fill(0);
         self.render_world(world, player, texture_manager);
-
+        self.render_ui(world, player);
         self.texture
             .update(
                 None,
@@ -86,7 +83,7 @@ impl<'a> Renderer<'a> {
             )
             .unwrap();
         let _ = self.canvas.copy(&self.texture, None, None);
-        self.render_debug_info(world, player);
+        // self.render_debug_info(world, player);
         self.canvas.present();
 
         self.render_t += 1.;
@@ -172,26 +169,24 @@ impl<'a> Renderer<'a> {
                             % f_t.height;
 
                         let f_pixel = if fprog_t.is_none() {
-                        	f_t[(tx, ty)]
-                        }
-                        else{
-	                       	fprog_t.unwrap().color(
-	                            prog_manager.pipeline_state(),
-	                            ty as u32,
-	                            tx as u32,
-	                            render_t,
-	                        )
+                            f_t[(tx, ty)]
+                        } else {
+                            fprog_t.unwrap().color(
+                                prog_manager.pipeline_state(),
+                                ty as u32,
+                                tx as u32,
+                                render_t,
+                            )
                         };
                         let c_pixel = if cprog_t.is_none() {
-                       		c_t.data[(ty * c_t.width + tx) as usize]
-                        }
-                        else{
-	                       	cprog_t.unwrap().color(
-	                            prog_manager.pipeline_state(),
-	                            ty as u32,
-	                            tx as u32,
-	                            render_t,
-	                        )
+                            c_t.data[(ty * c_t.width + tx) as usize]
+                        } else {
+                            cprog_t.unwrap().color(
+                                prog_manager.pipeline_state(),
+                                ty as u32,
+                                tx as u32,
+                                render_t,
+                            )
                         };
 
                         let f_shaded = (f_pixel & 0xFEFEFEFE) >> 1 | 0xFF000000;
@@ -360,7 +355,9 @@ impl<'a> Renderer<'a> {
         sorted_entities.sort_unstable_by(|a, b| {
             let dist_a = (player.position() - a.position()).norm_squared();
             let dist_b = (player.position() - b.position()).norm_squared();
-            dist_b.partial_cmp(&dist_a).unwrap_or_else(||{std::cmp::Ordering::Equal})
+            dist_b
+                .partial_cmp(&dist_a)
+                .unwrap_or_else(|| std::cmp::Ordering::Equal)
         });
 
         for entity in sorted_entities {
@@ -414,14 +411,14 @@ impl<'a> Renderer<'a> {
                             * s_t.height as i32;
                         let tex_y = d / sprite_height;
 
-                        let s_pixel = s_t.data[(tex_y as u32 * s_t.width as u32 + tex_x as u32) as usize];
+                        let s_pixel =
+                            s_t.data[(tex_y as u32 * s_t.width as u32 + tex_x as u32) as usize];
 
                         if (s_pixel & 0x00FFFFFF) != 0 {
-                            self.screen_buffer.data[y as usize * (self.window_width as usize) + stripe as usize] =
-                                                            s_pixel | 0xFF000000;
-
+                            self.screen_buffer.data
+                                [y as usize * (self.window_width as usize) + stripe as usize] =
+                                s_pixel | 0xFF000000;
                         }
-
                     }
                 }
             }

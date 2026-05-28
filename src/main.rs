@@ -5,6 +5,7 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
         .window("Psychotic", 1920, 1080)
+        .fullscreen_desktop()
         .build()
         .unwrap();
     let canvas = window.into_canvas().build().unwrap();

@@ -4,10 +4,17 @@ use nalgebra::Vector2;
 use sdl2::{render::TextureCreator, video::WindowContext};
 
 use crate::{
-    entities::EntityPtr, entity::enemy::Enemy, event_handler::EventHandler, level::{
+    entities::EntityPtr,
+    entity::enemy::Enemy,
+    event_handler::EventHandler,
+    level::{
         level_class::{Level, RoomData},
         room_file::RoomFile,
-    }, player::Player, renderer::Renderer, texture_manager::TextureManager, world::World
+    },
+    player::Player,
+    renderer::Renderer,
+    texture_manager::TextureManager,
+    world::World,
 };
 
 pub struct Game<'a> {
@@ -114,9 +121,11 @@ impl<'a> Game<'a> {
 
         //world.add_entity_dummy(Vector2::new(player.position().x, player.position().y), 10);
         //world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
-
-        for _ in 0..1{
-        	world.force_add_entity_direct(Enemy::new(Vector2::new(player.position().x, player.position().y)));
+        for _ in 0..10 {
+            world.force_add_entity_direct(Enemy::new(Vector2::new(
+                player.position().x,
+                player.position().y,
+            )));
         }
 
         let mut player_ptr = EntityPtr::new(player);
@@ -144,12 +153,13 @@ impl<'a> Game<'a> {
         let mut timer = Instant::now();
 
         loop {
-            self.renderer
-                .render(&self.world, self.player, &self.texture_manager);
-            self.event_handler.pull_events(self.player);
             let current_time = std::time::Instant::now();
             delta_time = (current_time - last_time).as_secs_f32();
             last_time = current_time;
+            self.renderer
+                .render(&self.world, self.player, &self.texture_manager);
+            self.event_handler.pull_events(self.player);
+
             self.world.update(delta_time);
 
             frame_count += 1;

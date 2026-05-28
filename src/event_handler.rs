@@ -24,8 +24,12 @@ impl EventHandler {
                 Event::MouseMotion { xrel, .. } => {
                     player.rotate((xrel as f32) * 0.005);
                 }
-                Event::MouseButtonDown { mouse_btn : MouseButton::Left, ..} => {
-                	player.shoot()
+                Event::MouseButtonDown {
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
+                    println!("Shoot!");
+                    player.shoot()
                 }
                 _ => {}
             }
