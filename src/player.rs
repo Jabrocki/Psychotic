@@ -22,7 +22,8 @@ pub struct Player {
     atk: i32,
     df: i32,
 
-    damage_effect: i32
+    damage_effect: i32,
+    shooting_effect: i32
 }
 
 impl Player {
@@ -42,6 +43,7 @@ impl Player {
             shooting_requested: false,
 
             damage_effect: 0,
+            shooting_effect: 0,
         }
     }
 
@@ -93,6 +95,7 @@ impl Player {
     pub fn shoot(&mut self) {
     	if self.hp <= 0 {return;}
 
+     	self.shooting_effect = 100;
         self.shooting_requested = true;
     }
 
@@ -102,6 +105,10 @@ impl Player {
 
     pub fn get_damage_effect(&self) -> i32{
     	self.damage_effect
+    }
+
+    pub fn get_shooting_effect(&self) -> i32{
+    	self.shooting_effect
     }
 }
 
@@ -164,6 +171,10 @@ impl Entity for Player {
 
         if self.damage_effect > 0 {
        		self.damage_effect -= 3;
+        }
+
+        if self.shooting_effect > 0 {
+        	self.shooting_effect -= 3;
         }
     }
 
