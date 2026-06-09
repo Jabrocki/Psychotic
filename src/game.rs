@@ -80,6 +80,9 @@ impl<'a> Game<'a> {
         texture_manager.load_static(11, "images/hand_1.png");
         texture_manager.load_static(12, "images/hand_2.png");
 
+        // Load ui
+        texture_manager.load_static(20, "images/pointing.png");
+
         // World hardcoded for now
         let small_room_file = RoomFile::from_file("rooms/small_room.json");
         let medium_room_file = RoomFile::from_file("rooms/medium_room.json");

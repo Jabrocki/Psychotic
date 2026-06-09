@@ -74,7 +74,7 @@ impl<'a> Renderer<'a> {
     pub fn render(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
         //self.screen_buffer.fill(0);
         self.render_world(world, player, texture_manager);
-        self.render_ui(world, player);
+        self.render_ui(world, player, texture_manager);
         self.texture
             .update(
                 None,
