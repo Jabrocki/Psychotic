@@ -30,6 +30,11 @@ struct MiniMapInfo {
 
 impl<'a> Renderer<'a> {
     pub fn render_ui(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
+	   	for texel in self.screen_buffer.data.iter_mut(){
+	    	let other_colors = 1.0 - ((player.get_damage_effect() as f32) / 100. );
+	    	*texel = (Color4f::from_u32(texel.clone()) * Color4f(1., other_colors, other_colors, other_colors)).to_u32();
+	    }
+
         self.render_hand(player, texture_manager);
         self.render_health_bar(player);
         self.render_minimap(world, player);
@@ -298,8 +303,8 @@ impl<'a> Renderer<'a> {
                     let screen_y = start_y + y;
 
                     if screen_x < self.window_width && screen_y < self.window_height {
-                        let buffer_idx = screen_y * self.window_width + screen_x;
-                        self.screen_buffer.data[buffer_idx] = color;
+                    	let other_colors = 1.0 - ((player.get_shooting_effect() as f32) / 100. );
+                        self.screen_buffer[(screen_x, screen_y)] = (Color4f::from_u32(color) * Color4f(1., other_colors, other_colors, other_colors)).to_u32();
                     }
                 }
             }

@@ -18,8 +18,8 @@ pub trait Entity {
 
 	fn bounding_box(&self) -> Vector2<f32>;
 
-	fn hit(&mut self){
-
+	fn set_id(&mut self, id: entity_id){
+		_ = id;
 	}
 }
 
@@ -49,8 +49,12 @@ impl Deref for EntityPtr {
 }
 
 impl EntityPtr {
-    pub fn new<T: Entity + 'static>(entity: T) -> EntityPtr {
+    pub fn new<T: Entity + 'static>(mut entity: T) -> EntityPtr {
         let layout = Layout::new::<T>();
+
+        let id = rand::random();
+
+        (&mut entity).set_id(id);
 
         let data: *mut u8 = unsafe { alloc(layout) }; // malloc
         let data_t: *mut T = data as *mut T;
@@ -61,8 +65,6 @@ impl EntityPtr {
 
         let vtable: *mut dyn Entity = data_t;
         let dynamic: *mut dyn Any = data_t; // for downcasting
-
-        let id = rand::random();
 
         EntityPtr {
             id,

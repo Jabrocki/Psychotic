@@ -21,6 +21,9 @@ pub struct Player {
     max_hp: i32,
     atk: i32,
     df: i32,
+
+    damage_effect: i32,
+    shooting_effect: i32
 }
 
 impl Player {
@@ -32,12 +35,15 @@ impl Player {
             acceleration: Vector2::new(0.0, 0.0),
             hit_box: Vector2::new(0.1, 0.1),
 
-            hp: 25,
-            max_hp: 30,
+            hp: 60,
+            max_hp: 60,
             atk: 2,
             df: 0,
 
             shooting_requested: false,
+
+            damage_effect: 0,
+            shooting_effect: 0,
         }
     }
 
@@ -54,30 +60,55 @@ impl Player {
     }
 
     pub fn up(&mut self) {
+    	if self.hp <= 0 {return;}
+
         self.acceleration += self.direction * 50.0;
     }
 
     pub fn down(&mut self) {
+    	if self.hp <= 0 {return;}
+
         self.acceleration -= self.direction * 50.0;
     }
 
     pub fn left(&mut self) {
+    	if self.hp <= 0 {return;}
+
         let left_direction = Vector2::new(self.direction.y, -self.direction.x);
         self.acceleration += left_direction * 50.0;
     }
 
     pub fn right(&mut self) {
+    	if self.hp <= 0 {return;}
+
         let right_direction = Vector2::new(-self.direction.y, self.direction.x);
         self.acceleration += right_direction * 50.0;
     }
 
     pub fn rotate(&mut self, angle: f32) {
+    	if self.hp <= 0 {return;}
+
         let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
         self.direction = rotation_matrix * self.direction;
     }
 
     pub fn shoot(&mut self) {
+    	if self.hp <= 0 {return;}
+
+     	self.shooting_effect = 100;
         self.shooting_requested = true;
+    }
+
+    pub fn set_damage_effect(&mut self, effect: i32){
+    	self.damage_effect = effect;
+    }
+
+    pub fn get_damage_effect(&self) -> i32{
+    	self.damage_effect
+    }
+
+    pub fn get_shooting_effect(&self) -> i32{
+    	self.shooting_effect
     }
 }
 
@@ -123,7 +154,8 @@ impl Entity for Player {
 
                                 match unit_target {
                                     Some(enemy_ref) => {
-                                        world.remove_entity(target.id());
+                                        //world.remove_entity(target.id());
+                                        enemy_ref.set_hp(enemy_ref.hp()-self.atk);
                                     }
                                     None => {}
                                 }
@@ -135,6 +167,14 @@ impl Entity for Player {
                 None => {}
             }
             self.shooting_requested = false;
+        }
+
+        if self.damage_effect > 0 {
+       		self.damage_effect -= 3;
+        }
+
+        if self.shooting_effect > 0 {
+        	self.shooting_effect -= 3;
         }
     }
 

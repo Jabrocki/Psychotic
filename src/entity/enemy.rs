@@ -2,7 +2,7 @@ use nalgebra::{Rotation2, Vector2};
 use rand::seq::IndexedRandom;
 
 use crate::{
-    animation::AnimationState, entities::Entity, entity::unit::UnitEntity, movement::Moveable,
+    animation::AnimationState, entities::{Entity, entity_id}, entity::unit::UnitEntity, movement::Moveable,
     pathfinder::find_path, player::Player, shoot::raycast2d, world::World,
 };
 
@@ -15,6 +15,8 @@ enum EnemyState {
 }
 
 pub struct Enemy {
+	id: entity_id,
+
     position: Vector2<f32>,
     velocity: Vector2<f32>,
     acceleration: Vector2<f32>,
@@ -39,6 +41,7 @@ pub struct Enemy {
 impl Enemy {
     pub fn new(position: Vector2<f32>) -> Self {
         Self {
+        	id: 0,
             position,
             velocity: Vector2::new(0., 0.),
             acceleration: Vector2::new(0., 0.),
@@ -146,6 +149,9 @@ impl Enemy {
                 // we can shoot
                 self.animation_state.set_frame(12, 1.);
                 self.fire_delay += 2.;
+
+                p.set_hp(p.hp()-self.atk);
+                p.set_damage_effect(100);
             }
         }
     }
@@ -193,6 +199,10 @@ impl Entity for Enemy {
         self.fire_delay -= delta_time;
         self.try_shooting(world);
         self.animation_state.update(delta_time);
+
+        if self.hp <= 0 {
+        	world.remove_entity(self.id);
+        }
     }
 
     fn sprite_id(&self) -> Option<u8> {
@@ -202,6 +212,11 @@ impl Entity for Enemy {
     fn bounding_box(&self) -> Vector2<f32> {
         self.hit_box
     }
+
+    fn set_id(&mut self, id: entity_id){
+    	self.id = id;
+	}
+
 }
 
 impl UnitEntity for Enemy {
