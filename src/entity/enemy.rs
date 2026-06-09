@@ -151,6 +151,7 @@ impl Enemy {
                 self.fire_delay += 2.;
 
                 p.set_hp(p.hp()-self.atk);
+                p.set_damage_effect(100);
             }
         }
     }

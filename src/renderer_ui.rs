@@ -33,6 +33,11 @@ impl<'a> Renderer<'a> {
         self.render_hand(player, texture_manager);
         self.render_health_bar(player);
         self.render_minimap(world, player);
+
+        for texel in self.screen_buffer.data.iter_mut(){
+        	let other_colors = 1.0 - ((player.get_damage_effect() as f32) / 100. );
+        	*texel = (Color4f::from_u32(texel.clone()) * Color4f(1., other_colors, other_colors, 1.)).to_u32();
+        }
     }
 
     fn render_health_bar(&mut self, player: &Player) {

@@ -21,6 +21,8 @@ pub struct Player {
     max_hp: i32,
     atk: i32,
     df: i32,
+
+    damage_effect: i32
 }
 
 impl Player {
@@ -38,6 +40,8 @@ impl Player {
             df: 0,
 
             shooting_requested: false,
+
+            damage_effect: 0,
         }
     }
 
@@ -90,6 +94,14 @@ impl Player {
     	if self.hp <= 0 {return;}
 
         self.shooting_requested = true;
+    }
+
+    pub fn set_damage_effect(&mut self, effect: i32){
+    	self.damage_effect = effect;
+    }
+
+    pub fn get_damage_effect(&self) -> i32{
+    	self.damage_effect
     }
 }
 
@@ -148,6 +160,10 @@ impl Entity for Player {
                 None => {}
             }
             self.shooting_requested = false;
+        }
+
+        if self.damage_effect > 0 {
+       		self.damage_effect -= 3;
         }
     }
 

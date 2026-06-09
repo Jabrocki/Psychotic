@@ -80,6 +80,15 @@ impl Color4f {
         r_c | g_c << 8 | b_c << 16 | a_c << 24
     }
 
+    pub fn from_u32(rgba: u32) -> Color4f{
+    	let high = 255;
+     	let r_c = high & rgba;
+      	let g_c = (rgba >> 8) & high;
+       	let b_c = (rgba >> 16) & high;
+        let a_c = (rgba >> 24) & high;
+        Color4f((r_c as f32) / 255., (g_c as f32) / 255., (b_c as f32) / 255., (a_c as f32) / 255.)
+    }
+
     pub fn fill(v: f32) -> Self {
         Color4f(v, v, v, v)
     }
