@@ -32,8 +32,8 @@ impl Player {
             acceleration: Vector2::new(0.0, 0.0),
             hit_box: Vector2::new(0.1, 0.1),
 
-            hp: 25,
-            max_hp: 30,
+            hp: 60,
+            max_hp: 60,
             atk: 2,
             df: 0,
 
@@ -54,29 +54,41 @@ impl Player {
     }
 
     pub fn up(&mut self) {
+    	if self.hp <= 0 {return;}
+
         self.acceleration += self.direction * 50.0;
     }
 
     pub fn down(&mut self) {
+    	if self.hp <= 0 {return;}
+
         self.acceleration -= self.direction * 50.0;
     }
 
     pub fn left(&mut self) {
+    	if self.hp <= 0 {return;}
+
         let left_direction = Vector2::new(self.direction.y, -self.direction.x);
         self.acceleration += left_direction * 50.0;
     }
 
     pub fn right(&mut self) {
+    	if self.hp <= 0 {return;}
+
         let right_direction = Vector2::new(-self.direction.y, self.direction.x);
         self.acceleration += right_direction * 50.0;
     }
 
     pub fn rotate(&mut self, angle: f32) {
+    	if self.hp <= 0 {return;}
+
         let rotation_matrix: Rotation2<f32> = Rotation2::new(angle);
         self.direction = rotation_matrix * self.direction;
     }
 
     pub fn shoot(&mut self) {
+    	if self.hp <= 0 {return;}
+
         self.shooting_requested = true;
     }
 }
@@ -123,7 +135,8 @@ impl Entity for Player {
 
                                 match unit_target {
                                     Some(enemy_ref) => {
-                                        world.remove_entity(target.id());
+                                        //world.remove_entity(target.id());
+                                        enemy_ref.set_hp(enemy_ref.hp()-self.atk);
                                     }
                                     None => {}
                                 }
