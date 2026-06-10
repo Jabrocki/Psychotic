@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use crate::level::{
     generate_edge_list::generate_edge_list, kruskarl::kruskarl, room::Room, room_file::RoomFile,
@@ -52,7 +52,7 @@ impl Level {
     fn place_single_room_record(&mut self, room_record: RoomData, rooms: &mut Vec<Room>) {
         // Function to place a single room in the level
         let mut rng = rand::rng();
-        let room_file = Arc::new(room_record.room_file);
+        let room_file = Rc::new(room_record.room_file);
         for _ in 0..room_record.count {
             let mut room_placed = false;
             for _ in 0..MAX_ROOM_ITER {
@@ -61,7 +61,7 @@ impl Level {
                 // Check if the room can be placed at (x, y)
                 if self.can_place_room(&room_file, x, y) {
                     self.place_room_on_maps(&room_file, x, y);
-                    let room = Room::new(Arc::clone(&room_file), nalgebra::Vector2::new(x, y));
+                    let room = Room::new(Rc::clone(&room_file), nalgebra::Vector2::new(x, y));
                     rooms.push(room);
                     room_placed = true;
                     break;

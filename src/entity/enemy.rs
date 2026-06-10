@@ -150,8 +150,8 @@ impl Enemy {
                 self.animation_state.set_frame(12, 1.);
                 self.fire_delay += 2.;
 
-                //p.set_hp(p.hp()-self.atk);
-                //p.set_damage_effect(100);
+                p.set_hp(p.hp()-self.atk);
+                p.set_damage_effect(100);
             }
         }
     }
