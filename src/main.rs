@@ -13,6 +13,8 @@ fn main() {
 
     let event_pump = sdl_context.event_pump().unwrap();
 
+    sdl_context.mouse().set_relative_mouse_mode(true);
+
     let mut game = Game::new(1920, 1080, canvas, event_pump, &texture_creator);
 
     game.run();

@@ -33,7 +33,6 @@ impl<'a> Game<'a> {
         event_pump: sdl2::EventPump,
         texture_creator: &'a TextureCreator<WindowContext>,
     ) -> Self {
-
         let mut world = World::new(vec![], vec![], vec![]);
         let mut player = Player::new();
         let renderer = Renderer::new(canvas, width, height, texture_creator);
@@ -95,11 +94,31 @@ impl<'a> Game<'a> {
 
         //world.add_entity_dummy(Vector2::new(player.position().x, player.position().y), 10);
         //world.add_entity_dummy(Vector2::new(7.5, 5.5), 10);
-        for _ in 0..10 {
-            world.force_add_entity_direct(Enemy::new(Vector2::new(
-                player.position().x,
-                player.position().y,
-            )));
+        let procent_of_enemies = 0.08;
+
+        for _ in 0..((world.width * world.height) as f32 * procent_of_enemies) as usize {
+            let enemy_position = loop {
+                let x = (rand::random::<u32>() % world.width as u32) as usize;
+                let y = (rand::random::<u32>() % world.height as u32) as usize;
+                if world.get_wall_tile(x, y) == 0 {
+                    break Vector2::new(x as f32 + 0.5, y as f32 + 0.5);
+                }
+            };
+            let enemy = Enemy::new(enemy_position);
+            world.force_add_entity_direct(enemy);
+        }
+
+        let procent_of_dummies = 0.01;
+
+        for _ in 0..((world.width * world.height) as f32 * procent_of_dummies) as usize {
+            let dummy_position = loop {
+                let x = (rand::random::<u32>() % world.width as u32) as usize;
+                let y = (rand::random::<u32>() % world.height as u32) as usize;
+                if world.get_wall_tile(x, y) == 0 {
+                    break Vector2::new(x as f32 + 0.5, y as f32 + 0.5);
+                }
+            };
+            world.add_entity_dummy(dummy_position, 10);
         }
 
         let mut player_ptr = EntityPtr::new(player);
@@ -109,8 +128,6 @@ impl<'a> Game<'a> {
         world.player_id = Some(player_ptr.id());
 
         world.force_add_entity(player_ptr);
-
-        world.add_entity_dummy(Vector2::new(2.0, 2.0), 10);
 
         Self {
             world,

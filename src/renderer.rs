@@ -24,7 +24,7 @@ unsafe impl Send for RenderJobWrapper {}
 
 unsafe impl Sync for RenderJobWrapper {}
 
-const JOB_AMOUNT: usize = 5;
+const JOB_AMOUNT: usize = 8;
 
 pub struct Renderer<'a> {
     canvas: Canvas<Window>,
@@ -362,8 +362,8 @@ impl<'a> Renderer<'a> {
 
             let sprite_vec = entity.position() - player.position();
 
-            if sprite_vec.x.abs() <= epsilon && sprite_vec.y.abs() <= epsilon{
-            	continue;
+            if sprite_vec.x.abs() <= epsilon && sprite_vec.y.abs() <= epsilon {
+                continue;
             }
 
             let inv_det = 1.0 / (plane.x * player.direction().y - player.direction().x * plane.y);
