@@ -156,9 +156,11 @@ pub fn worley_noise_border(texture_size: usize, cell_amount: usize, seed: u64, t
 			let x = x as i32;
 			let y = y as i32;
 
-			let mut closest = Vector2::new(i32::MAX, i32::MAX);
+			const big_number: i32 = 10000;
+
+			let mut closest = Vector2::new(big_number, big_number);
 			let xy = Vector2::new(x as i32, y as i32);
-			let mut closest_2 = Vector2::new(i32::MAX, i32::MAX);
+			let mut closest_2 = Vector2::new(big_number, big_number);
 			for &c in cells.iter(){
 				// toroidal distance
 

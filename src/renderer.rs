@@ -365,7 +365,13 @@ impl<'a> Renderer<'a> {
                 continue;
             }
 
+            const epsilon: f32 = 0.000001;
+
             let sprite_vec = entity.position() - player.position();
+
+            if sprite_vec.x.abs() <= epsilon && sprite_vec.y.abs() <= epsilon{
+            	continue;
+            }
 
             let inv_det = 1.0 / (plane.x * player.direction().y - player.direction().x * plane.y);
 
