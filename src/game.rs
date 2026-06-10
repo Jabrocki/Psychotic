@@ -33,37 +33,8 @@ impl<'a> Game<'a> {
         event_pump: sdl2::EventPump,
         texture_creator: &'a TextureCreator<WindowContext>,
     ) -> Self {
-        // Example world
-        let wall_map = vec![
-            vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            vec![1, 0, 0, 2, 0, 2, 0, 0, 0, 1],
-            vec![1, 0, 0, 0, 2, 0, 0, 0, 0, 1],
-            vec![1, 0, 0, 2, 0, 2, 0, 0, 0, 1],
-            vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
-        let ceil_map = vec![
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-            vec![1, 2, 3, 4, 1, 2, 3, 4, 1, 2],
-        ];
 
-        let floor_map = vec![
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-            vec![4, 3, 2, 1, 4, 3, 2, 1, 4, 3],
-        ];
-
-        let mut world = World::new(wall_map, ceil_map, floor_map);
+        let mut world = World::new(vec![], vec![], vec![]);
         let mut player = Player::new();
         let renderer = Renderer::new(canvas, width, height, texture_creator);
         let event_handler = EventHandler::new(event_pump);

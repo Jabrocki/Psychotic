@@ -82,7 +82,7 @@ impl World {
 
 // Wordl impl for Entities
 impl World {
-    // entities should not call this
+    /// Should not be used when the game updates (for example by entities)
     pub fn add_entity_dummy(&mut self, position: Vector2<f32>, sprite_id: u8) {
         self.entities
             .push(EntityPtr::new::<Dummy>(Dummy::new(position, sprite_id)));
@@ -92,6 +92,7 @@ impl World {
         self.stage_added.push(entity);
     }
 
+    /// Should not be used when the game updates (for example by entities)
     pub fn force_add_entity(&mut self, entity: EntityPtr) {
         self.entities.push(entity);
     }
@@ -104,6 +105,7 @@ impl World {
      	(eptr, eptr.direct())
     }
 
+    /// Should not be used when the game updates (for example by entities)
     pub fn force_add_entity_direct<T: Entity + 'static>(&mut self, entity: T) -> (EntityPtr, &mut T){
     	let mut eptr = EntityPtr::new::<T>(entity);
 

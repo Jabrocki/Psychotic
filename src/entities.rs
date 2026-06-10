@@ -95,6 +95,7 @@ impl EntityPtr {
     }
 }
 
+/// Entity which does nothing
 pub struct Dummy {
     pos: Vector2<f32>,
     sprite_id: u8,
