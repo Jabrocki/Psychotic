@@ -1,8 +1,6 @@
 use nalgebra::Vector2;
 use serde::Deserialize;
 
-// TODO: imlement enum for tile types
-// TODO: implement entities with entity type
 #[derive(Clone, Deserialize)]
 pub struct RoomFile {
     width: usize,

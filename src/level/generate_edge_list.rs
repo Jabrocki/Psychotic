@@ -29,5 +29,3 @@ pub fn generate_edge_list(room_list: Vec<Room>) -> Vec<Edge> {
     edges.sort_by(|a, b| a.get_weight().partial_cmp(&b.get_weight()).unwrap());
     edges
 }
-
-// TODO: maybe do test now just pray it works

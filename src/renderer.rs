@@ -37,12 +37,6 @@ pub struct Renderer<'a> {
     pub render_t: f32,
 }
 
-// TODO: generalny refactoring renderera, żeby był bardziej modularny i czytelny, można podzielić
-// na pliki
-// TODO: zrób drugą mapę w WORLD ale dla podług i sufitów
-// TODO: ciekawe sprity typu drzwi, które można otwierać i zamykać
-// TODO: do drzwi przyciski i inne fajne rzeczy
-
 impl<'a> Renderer<'a> {
     pub fn new(
         canvas: Canvas<Window>,
@@ -92,7 +86,6 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_world(&mut self, world: &World, player: &Player, texture_manager: &TextureManager) {
-        // TODO: make it argument for better control over fov
         let fov_multiplier = 1.2;
         let plane = Vector2::new(
             -player.direction().y * fov_multiplier,

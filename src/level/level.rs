@@ -14,7 +14,6 @@ pub struct RoomData {
 
 static MAX_ROOM_ITER: i32 = 1000;
 
-// TODO: mayde this private
 pub struct Level {
     width: usize,
     height: usize,
