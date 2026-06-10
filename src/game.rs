@@ -8,7 +8,7 @@ use crate::{
     entity::enemy::Enemy,
     event_handler::EventHandler,
     level::{
-        level_class::{Level, RoomData},
+        level::{Level, RoomData},
         room_file::RoomFile,
     },
     player::Player,

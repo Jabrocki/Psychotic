@@ -74,7 +74,7 @@ fn get_vertices(edge_list: &Vec<Edge>) -> HashSet<Uuid> {
 mod tests {
     use crate::level::{
         generate_edge_list::generate_edge_list,
-        level_class::{Level, RoomData},
+        level::{Level, RoomData},
         room_file::RoomFile,
     };
 

@@ -5,7 +5,7 @@ use std::{
 
 use nalgebra::Vector2;
 
-use crate::level::{edge::Edge, level_class::Level};
+use crate::level::{edge::Edge, level::Level};
 
 // Helper struct for binary heap
 #[derive(Clone, Copy, Debug)]
